@@ -163,6 +163,9 @@ export const eventAttendees = pgTable(
     eventOrderId: text("event_order_id")
       .notNull()
       .references(() => eventOrder.id, { onDelete: "cascade" }),
+    ticketCode: text("ticket_code").notNull().unique(),
+    checkedInAt: timestamp("checked_in_at"),
+    ticketEmailSentAt: timestamp("ticket_email_sent_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -172,5 +175,6 @@ export const eventAttendees = pgTable(
   (table) => [
     index("event_attendees_eventId_userId_idx").on(table.eventId, table.userId),
     index("event_attendees_eventOrderId_idx").on(table.eventOrderId),
+    index("event_attendees_ticketCode_idx").on(table.ticketCode),
   ],
 );
