@@ -1,4 +1,11 @@
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  index,
+  integer,
+} from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -70,4 +77,44 @@ export const verification = pgTable(
       .notNull(),
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+export const category = pgTable("category", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon").notNull(),
+  /** Hex or CSS color for the category (e.g. #3b82f6). */
+  color: text("color").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+export const event = pgTable(
+  "event",
+  {
+    id: text("id").primaryKey(),
+    title: text("title").notNull(),
+    date: text("date").notNull(),
+    time: text("time").notNull(),
+    address: text("address").notNull(),
+    imageUrl: text("image_url"),
+    categoryId: text("category_id")
+      .notNull()
+      .references(() => category.id, { onDelete: "restrict" }),
+    city: text("city").notNull(),
+    continent: text("continent").notNull(),
+    description: text("description").notNull(),
+    priceCents: integer("price_cents").notNull().default(0),
+    currency: text("currency").notNull().default("USD"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index("event_categoryId_idx").on(table.categoryId)],
 );
