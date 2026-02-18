@@ -13,6 +13,7 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
+  walletAddress: text("wallet_address"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -122,8 +123,8 @@ export const event = pgTable(
   (table) => [index("event_categoryId_idx").on(table.categoryId)],
 );
 
-export const eventAttendee = pgTable(
-  "event_attendee",
+export const eventOrder = pgTable(
+  "event_order",
   {
     id: text("id").primaryKey(),
     eventId: text("event_id")
@@ -132,6 +133,9 @@ export const eventAttendee = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    amountCkbShannons: integer("amount_ckb_shannons").notNull(),
+    status: text("status").notNull(),
+    txHash: text("tx_hash"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -139,6 +143,34 @@ export const eventAttendee = pgTable(
       .notNull(),
   },
   (table) => [
-    index("event_attendee_eventId_userId_idx").on(table.eventId, table.userId),
+    index("event_order_eventId_idx").on(table.eventId),
+    index("event_order_userId_idx").on(table.userId),
+    index("event_order_status_idx").on(table.status),
+  ],
+);
+
+export const eventAttendees = pgTable(
+  "event_attendees",
+  {
+    id: text("id").primaryKey(),
+    eventId: text("event_id")
+      .notNull()
+      .references(() => event.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    orderId: text("order_id").references(() => eventOrder.id, { onDelete: "set null" }),
+    eventOrderId: text("event_order_id")
+      .notNull()
+      .references(() => eventOrder.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("event_attendees_eventId_userId_idx").on(table.eventId, table.userId),
+    index("event_attendees_eventOrderId_idx").on(table.eventOrderId),
   ],
 );

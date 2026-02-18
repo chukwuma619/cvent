@@ -60,20 +60,21 @@ export function getCategoryById(id: string): DummyCategory | undefined {
 export type DummyUser = {
   id: string;
   name: string;
+  walletAddress: string;
 };
 
 export const DUMMY_USERS: DummyUser[] = [
-  { id: "user-nervos", name: "Nervos Foundation" },
-  { id: "user-ckb-dev", name: "CKB Dev Guild" },
-  { id: "user-ecosystem-summit", name: "CKB Ecosystem Summit" },
-  { id: "user-cvent", name: "cvent" },
-  { id: "user-scaling-labs", name: "Scaling Labs" },
-  { id: "user-berlin", name: "Berlin CKB Community" },
-  { id: "user-devhub", name: "DevHub London" },
-  { id: "user-asia-conf", name: "Asia Crypto Conference" },
-  { id: "user-web3house", name: "Web3 House Lagos" },
-  { id: "user-toronto", name: "Toronto CKB Meetup" },
-  { id: "user-miami", name: "Miami Ecosystem" },
+  { id: "user-nervos", name: "Nervos Foundation", walletAddress: "ckt1qyqrdsefa43s6m882pcj53m4gdnjfkfswge0gxqk" },
+  { id: "user-ckb-dev", name: "CKB Dev Guild", walletAddress: "ckt1qyqrdsefa43s6m882pcj53m4gdnjfkfswge0gxqk" },
+  { id: "user-ecosystem-summit", name: "CKB Ecosystem Summit", walletAddress: "ckt1qyqrdsefa43s6m882pcj53m4gdnjfkfswge0gxqk" },
+  { id: "user-cvent", name: "cvent", walletAddress: "ckt1qyqrdsefa43s6m882pcj53m4gdnjfkfswge0gxqk" },
+  { id: "user-scaling-labs", name: "Scaling Labs", walletAddress: "ckt1qyqrdsefa43s6m882pcj53m4gdnjfkfswge0gxqk" },
+  { id: "user-berlin", name: "Berlin CKB Community", walletAddress: "ckt1qyqrdsefa43s6m882pcj53m4gdnjfkfswge0gxqk" },
+  { id: "user-devhub", name: "DevHub London", walletAddress: "ckt1qyqrdsefa43s6m882pcj53m4gdnjfkfswge0gxqk" },
+  { id: "user-asia-conf", name: "Asia Crypto Conference", walletAddress: "ckt1qyqrdsefa43s6m882pcj53m4gdnjfkfswge0gxqk" },
+  { id: "user-web3house", name: "Web3 House Lagos", walletAddress: "ckt1qyqrdsefa43s6m882pcj53m4gdnjfkfswge0gxqk" },
+  { id: "user-toronto", name: "Toronto CKB Meetup", walletAddress: "ckt1qyqrdsefa43s6m882pcj53m4gdnjfkfswge0gxqk" },
+  { id: "user-miami", name: "Miami Ecosystem", walletAddress: "ckt1qyqrdsefa43s6m882pcj53m4gdnjfkfswge0gxqk" },
 ];
 
 export function getHostById(id: string): DummyUser | undefined {
@@ -129,6 +130,8 @@ export type DummyEvent = {
   description: string;
   priceCents: number;
   currency: string;
+  /** Price in CKB shannons (1 CKB = 100_000_000). Null = free. */
+  priceCkbShannons: number | null;
   /** Host user id (references user.id in schema). */
   hostedBy: string;
 };
@@ -148,6 +151,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Join the Nervos community for an evening of networking, lightning talks, and demos. Connect with builders and enthusiasts in the CKB ecosystem. We'll cover recent protocol updates, dApp showcases, and proof-of-attendance use cases. Food and drinks provided.",
     priceCents: 0,
     currency: "USD",
+    priceCkbShannons: null,
     hostedBy: "user-nervos",
   },
   {
@@ -164,6 +168,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Hands-on workshop for developers building on Nervos CKB. Learn to deploy smart contracts, integrate JoyID and wallet connectors, and issue proof-of-attendance NFTs. Bring your laptop; we'll code together. Prior experience with TypeScript or Rust is helpful but not required.",
     priceCents: 2500,
     currency: "USD",
+    priceCkbShannons: 100_000_000,
     hostedBy: "user-ckb-dev",
   },
   {
@@ -180,6 +185,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Full-day summit bringing together projects, investors, and developers in the CKB ecosystem. Keynotes from core contributors, panel discussions on scaling and UX, and an expo hall with live demos. Proof of attendance will be issued on-chain for all attendees.",
     priceCents: 9900,
     currency: "USD",
+    priceCkbShannons: 500_000_000,
     hostedBy: "user-ecosystem-summit",
   },
   {
@@ -196,6 +202,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "See the latest tools and platforms for issuing and verifying proof of attendance on CKB. Demos from cvent and other builders, Q&A with the teams, and a chance to try the flow yourself. Perfect for event organizers and devs exploring PoA.",
     priceCents: 0,
     currency: "USD",
+    priceCkbShannons: null,
     hostedBy: "user-cvent",
   },
   {
@@ -212,6 +219,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Technical deep-dives on Layer 2 solutions and scaling approaches in the Nervos ecosystem. Talks on Godwoken, rollups, and state channels, followed by an open discussion. Geared toward developers and researchers.",
     priceCents: 1500,
     currency: "USD",
+    priceCkbShannons: 50_000_000,
     hostedBy: "user-scaling-labs",
   },
   {
@@ -228,6 +236,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Celebrate the launch of cvent — the event platform with proof of attendance on CKB. Live music, drinks, and the chance to mint your first PoA NFT at the door. Meet the team, discover upcoming events, and connect with the community.",
     priceCents: 2000,
     currency: "USD",
+    priceCkbShannons: 75_000_000,
     hostedBy: "user-cvent",
   },
   {
@@ -244,6 +253,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Monthly Nervos meetup in Berlin. Casual hangout with local builders, updates from the ecosystem, and pizza. All welcome.",
     priceCents: 0,
     currency: "EUR",
+    priceCkbShannons: null,
     hostedBy: "user-berlin",
   },
   {
@@ -260,6 +270,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Full-day workshop on writing and deploying CKB smart contracts. From basics to testing and mainnet. Laptop required.",
     priceCents: 7500,
     currency: "GBP",
+    priceCkbShannons: 200_000_000,
     hostedBy: "user-devhub",
   },
   {
@@ -276,6 +287,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Premier crypto and blockchain conference in Asia. Nervos and CKB track with keynotes, panels, and networking. Proof of attendance NFTs for all attendees.",
     priceCents: 29900,
     currency: "USD",
+    priceCkbShannons: 1_000_000_000,
     hostedBy: "user-asia-conf",
   },
   {
@@ -292,6 +304,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Live demo of integrating JoyID and passkey auth into your dApp. Q&A and hands-on support. Free to attend.",
     priceCents: 0,
     currency: "USD",
+    priceCkbShannons: null,
     hostedBy: "user-web3house",
   },
   {
@@ -308,6 +321,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "An evening of short talks on scaling CKB apps and improving UX. Three speakers, open mic, and networking.",
     priceCents: 1000,
     currency: "USD",
+    priceCkbShannons: 25_000_000,
     hostedBy: "user-toronto",
   },
   {
@@ -324,6 +338,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Quarterly ecosystem party. Music, open bar, and the chance to meet teams from across the Nervos ecosystem. 21+.",
     priceCents: 3500,
     currency: "USD",
+    priceCkbShannons: 125_000_000,
     hostedBy: "user-miami",
   },
 ];
