@@ -56,6 +56,66 @@ export function getCategoryById(id: string): DummyCategory | undefined {
   return DUMMY_CATEGORIES.find((c) => c.id === id);
 }
 
+/** Dummy user (host). Matches schema: event.hostedBy references user.id. */
+export type DummyUser = {
+  id: string;
+  name: string;
+};
+
+export const DUMMY_USERS: DummyUser[] = [
+  { id: "user-nervos", name: "Nervos Foundation" },
+  { id: "user-ckb-dev", name: "CKB Dev Guild" },
+  { id: "user-ecosystem-summit", name: "CKB Ecosystem Summit" },
+  { id: "user-cvent", name: "cvent" },
+  { id: "user-scaling-labs", name: "Scaling Labs" },
+  { id: "user-berlin", name: "Berlin CKB Community" },
+  { id: "user-devhub", name: "DevHub London" },
+  { id: "user-asia-conf", name: "Asia Crypto Conference" },
+  { id: "user-web3house", name: "Web3 House Lagos" },
+  { id: "user-toronto", name: "Toronto CKB Meetup" },
+  { id: "user-miami", name: "Miami Ecosystem" },
+];
+
+export function getHostById(id: string): DummyUser | undefined {
+  return DUMMY_USERS.find((u) => u.id === id);
+}
+
+/** Dummy event attendee. Matches schema: event_attendee (eventId, userId). */
+export type DummyEventAttendee = {
+  eventId: string;
+  userId: string;
+};
+
+/** Attendee counts per event id (used to build DUMMY_EVENT_ATTENDEES). */
+const DUMMY_ATTENDEE_COUNTS: Record<string, number> = {
+  "1": 42,
+  "2": 28,
+  "3": 156,
+  "4": 19,
+  "5": 34,
+  "6": 87,
+  "7": 22,
+  "8": 31,
+  "9": 412,
+  "10": 15,
+  "11": 26,
+  "12": 64,
+};
+
+let _attendeeId = 0;
+export const DUMMY_EVENT_ATTENDEES: DummyEventAttendee[] = Object.entries(
+  DUMMY_ATTENDEE_COUNTS
+).flatMap(([eventId, count]) =>
+  Array.from({ length: count }, () => ({
+    eventId,
+    userId: `user-attendee-${++_attendeeId}`,
+  }))
+);
+
+export function getAttendeesCountByEventId(eventId: string): number {
+  return DUMMY_EVENT_ATTENDEES.filter((a) => a.eventId === eventId).length;
+}
+
 export type DummyEvent = {
   id: string;
   title: string;
@@ -69,6 +129,8 @@ export type DummyEvent = {
   description: string;
   priceCents: number;
   currency: string;
+  /** Host user id (references user.id in schema). */
+  hostedBy: string;
 };
 
 export const DUMMY_EVENTS: DummyEvent[] = [
@@ -86,6 +148,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Join the Nervos community for an evening of networking, lightning talks, and demos. Connect with builders and enthusiasts in the CKB ecosystem. We'll cover recent protocol updates, dApp showcases, and proof-of-attendance use cases. Food and drinks provided.",
     priceCents: 0,
     currency: "USD",
+    hostedBy: "user-nervos",
   },
   {
     id: "2",
@@ -101,6 +164,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Hands-on workshop for developers building on Nervos CKB. Learn to deploy smart contracts, integrate JoyID and wallet connectors, and issue proof-of-attendance NFTs. Bring your laptop; we'll code together. Prior experience with TypeScript or Rust is helpful but not required.",
     priceCents: 2500,
     currency: "USD",
+    hostedBy: "user-ckb-dev",
   },
   {
     id: "3",
@@ -116,6 +180,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Full-day summit bringing together projects, investors, and developers in the CKB ecosystem. Keynotes from core contributors, panel discussions on scaling and UX, and an expo hall with live demos. Proof of attendance will be issued on-chain for all attendees.",
     priceCents: 9900,
     currency: "USD",
+    hostedBy: "user-ecosystem-summit",
   },
   {
     id: "4",
@@ -131,6 +196,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "See the latest tools and platforms for issuing and verifying proof of attendance on CKB. Demos from cvent and other builders, Q&A with the teams, and a chance to try the flow yourself. Perfect for event organizers and devs exploring PoA.",
     priceCents: 0,
     currency: "USD",
+    hostedBy: "user-cvent",
   },
   {
     id: "5",
@@ -146,6 +212,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Technical deep-dives on Layer 2 solutions and scaling approaches in the Nervos ecosystem. Talks on Godwoken, rollups, and state channels, followed by an open discussion. Geared toward developers and researchers.",
     priceCents: 1500,
     currency: "USD",
+    hostedBy: "user-scaling-labs",
   },
   {
     id: "6",
@@ -161,6 +228,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Celebrate the launch of cvent — the event platform with proof of attendance on CKB. Live music, drinks, and the chance to mint your first PoA NFT at the door. Meet the team, discover upcoming events, and connect with the community.",
     priceCents: 2000,
     currency: "USD",
+    hostedBy: "user-cvent",
   },
   {
     id: "7",
@@ -176,6 +244,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Monthly Nervos meetup in Berlin. Casual hangout with local builders, updates from the ecosystem, and pizza. All welcome.",
     priceCents: 0,
     currency: "EUR",
+    hostedBy: "user-berlin",
   },
   {
     id: "8",
@@ -191,6 +260,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Full-day workshop on writing and deploying CKB smart contracts. From basics to testing and mainnet. Laptop required.",
     priceCents: 7500,
     currency: "GBP",
+    hostedBy: "user-devhub",
   },
   {
     id: "9",
@@ -206,6 +276,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Premier crypto and blockchain conference in Asia. Nervos and CKB track with keynotes, panels, and networking. Proof of attendance NFTs for all attendees.",
     priceCents: 29900,
     currency: "USD",
+    hostedBy: "user-asia-conf",
   },
   {
     id: "10",
@@ -221,6 +292,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Live demo of integrating JoyID and passkey auth into your dApp. Q&A and hands-on support. Free to attend.",
     priceCents: 0,
     currency: "USD",
+    hostedBy: "user-web3house",
   },
   {
     id: "11",
@@ -236,6 +308,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "An evening of short talks on scaling CKB apps and improving UX. Three speakers, open mic, and networking.",
     priceCents: 1000,
     currency: "USD",
+    hostedBy: "user-toronto",
   },
   {
     id: "12",
@@ -251,6 +324,7 @@ export const DUMMY_EVENTS: DummyEvent[] = [
       "Quarterly ecosystem party. Music, open bar, and the chance to meet teams from across the Nervos ecosystem. 21+.",
     priceCents: 3500,
     currency: "USD",
+    hostedBy: "user-miami",
   },
 ];
 

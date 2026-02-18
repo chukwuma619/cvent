@@ -110,6 +110,9 @@ export const event = pgTable(
     description: text("description").notNull(),
     priceCents: integer("price_cents").notNull().default(0),
     currency: text("currency").notNull().default("USD"),
+    hostedBy: text("hosted_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -117,4 +120,25 @@ export const event = pgTable(
       .notNull(),
   },
   (table) => [index("event_categoryId_idx").on(table.categoryId)],
+);
+
+export const eventAttendee = pgTable(
+  "event_attendee",
+  {
+    id: text("id").primaryKey(),
+    eventId: text("event_id")
+      .notNull()
+      .references(() => event.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("event_attendee_eventId_userId_idx").on(table.eventId, table.userId),
+  ],
 );

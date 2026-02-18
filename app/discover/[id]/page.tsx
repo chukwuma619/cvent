@@ -1,8 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Calendar, MapPin, Clock, ArrowLeft } from "lucide-react";
-import { getEventById, getCategoryById } from "@/lib/dummy-events";
+import { Calendar, MapPin, Clock, ArrowLeft, User, Users } from "lucide-react";
+import {
+  getEventById,
+  getCategoryById,
+  getHostById,
+  getAttendeesCountByEventId,
+} from "@/lib/dummy-events";
 import { Button } from "@/components/ui/button";
+
+function isEventPast(eventDate: string): boolean {
+  const today = new Date().toISOString().slice(0, 10);
+  return eventDate < today;
+}
 
 function formatDisplayDate(isoDate: string) {
   const d = new Date(isoDate);
@@ -85,6 +95,18 @@ export default async function EventDetailPage({ params }: Props) {
             <h1 className="text-2xl font-semibold tracking-tight">
               {event.title}
             </h1>
+
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <User className="size-4 shrink-0" />
+                Hosted by {getHostById(event.hostedBy)?.name ?? "Unknown"}
+              </span>
+              <span className="flex items-center gap-2">
+                <Users className="size-4 shrink-0" />
+                {getAttendeesCountByEventId(event.id)}{" "}
+                {isEventPast(event.date) ? "went" : "attending"}
+              </span>
+            </div>
 
             <div className="flex flex-col gap-3 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
