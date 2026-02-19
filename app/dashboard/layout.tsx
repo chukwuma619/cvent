@@ -6,8 +6,11 @@ import {
   Ticket,
   PlusCircle,
   Compass,
+  User,
 } from "lucide-react";
 import { auth } from "@/lib/auth";
+import { Provider } from "@ckb-ccc/connector-react";
+
 
 export default async function DashboardLayout({
   children,
@@ -20,6 +23,7 @@ export default async function DashboardLayout({
   }
 
   return (
+    <Provider>
     <div className="min-h-dvh bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="container mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
@@ -81,6 +85,13 @@ export default async function DashboardLayout({
             Create event
           </Link>
           <Link
+            href="/dashboard/account"
+            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground underline-offset-4 hover:bg-muted hover:text-foreground hover:underline"
+          >
+            <User className="size-4" />
+            Account
+          </Link>
+          <Link
             href="/discover"
             className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground underline-offset-4 hover:bg-muted hover:text-foreground hover:underline"
           >
@@ -92,5 +103,6 @@ export default async function DashboardLayout({
         {children}
       </div>
     </div>
+    </Provider>
   );
 }

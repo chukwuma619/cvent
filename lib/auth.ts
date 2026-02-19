@@ -13,11 +13,23 @@ export const auth = betterAuth({
   plugins: [nextCookies()],
 
   socialProviders: {
-    google: { 
-        clientId: process.env.GOOGLE_CLIENT_ID!, 
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET!, 
-    }, 
-},
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    },
+  },
+  user: {
+    additionalFields: {
+      walletAddress: {
+        type: "string",
+        required: false,
+        default: null,
+        allowNull: true,
+        unique: false,
+        columnName: "wallet_address",
+      },
+    },
+  },
 });
 
 export type Session = NonNullable<

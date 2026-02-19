@@ -30,12 +30,7 @@ function formatDisplayDate(isoDate: string) {
   });
 }
 
-function formatPrice(cents: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-  }).format(cents / 100);
-}
+
 
 export default async function EventDetailPage({
   params,
