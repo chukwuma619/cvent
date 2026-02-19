@@ -21,6 +21,8 @@ export const user = pgTable("user", {
     .notNull(),
 });
 
+export type User = typeof user.$inferSelect;
+
 export const session = pgTable(
   "session",
   {
@@ -39,6 +41,8 @@ export const session = pgTable(
   },
   (table) => [index("session_userId_idx").on(table.userId)],
 );
+
+export type Session = typeof session.$inferSelect;
 
 export const account = pgTable(
   "account",
@@ -64,6 +68,8 @@ export const account = pgTable(
   (table) => [index("account_userId_idx").on(table.userId)],
 );
 
+export type Account = typeof account.$inferSelect;
+
 export const verification = pgTable(
   "verification",
   {
@@ -80,12 +86,13 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+export type Verification = typeof verification.$inferSelect;
+
 export const category = pgTable("category", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
   icon: text("icon").notNull(),
-  /** Hex or CSS color for the category (e.g. #3b82f6). */
   color: text("color").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
@@ -93,6 +100,7 @@ export const category = pgTable("category", {
     .$onUpdate(() => new Date())
     .notNull(),
 });
+export type Category = typeof category.$inferSelect;
 
 export const event = pgTable(
   "event",
@@ -122,6 +130,7 @@ export const event = pgTable(
   },
   (table) => [index("event_categoryId_idx").on(table.categoryId)],
 );
+export type Event = typeof event.$inferSelect;
 
 export const eventOrder = pgTable(
   "event_order",
@@ -148,7 +157,7 @@ export const eventOrder = pgTable(
     index("event_order_status_idx").on(table.status),
   ],
 );
-
+export type EventOrder = typeof eventOrder.$inferSelect;
 export const eventAttendees = pgTable(
   "event_attendees",
   {
@@ -178,3 +187,4 @@ export const eventAttendees = pgTable(
     index("event_attendees_ticketCode_idx").on(table.ticketCode),
   ],
 );
+export type EventAttendees = typeof eventAttendees.$inferSelect;
