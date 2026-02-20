@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async rewrites() {
+    return [
+      {
+        source: "/.well-known/attendance-issuer",
+        destination: "/api/well-known/attendance-issuer",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

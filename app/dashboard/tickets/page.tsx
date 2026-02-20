@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDisplayDate } from "@/lib/utils";
 import { TicketQR } from "@/components/dashboard/ticket-qr";
+import { GetProofButton } from "@/components/dashboard/get-proof-button";
 
 
 export default async function MyTicketsPage() {
@@ -49,7 +50,7 @@ export default async function MyTicketsPage() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {tickets.map(({ event, ticketCode }) => (
+          {tickets.map(({ event, ticketCode, checkedInAt }) => (
             <Card key={event.id} className="overflow-hidden">
               <div className="relative aspect-5/3 w-full overflow-hidden bg-muted">
                 {event.imageUrl ? (
@@ -100,6 +101,12 @@ export default async function MyTicketsPage() {
                     {event.city}, {event.continent}
                   </span>
                 </div>
+                {checkedInAt && (
+                  <GetProofButton
+                    eventId={event.id}
+                    eventTitle={event.title}
+                  />
+                )}
                 <Button variant="outline" size="sm" className="mt-2 w-full" asChild>
                   <Link href={`/discover/${event.id}`}>View event</Link>
                 </Button>

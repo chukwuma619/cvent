@@ -1,4 +1,4 @@
-import { asc, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   event,
@@ -339,6 +339,7 @@ export type TicketWithEvent = {
   event: Event;
   ticketCode: string;
   orderStatus: string;
+  checkedInAt: Date | null;
 };
 
 export async function getTicketsByUserId(
@@ -351,6 +352,7 @@ export async function getTicketsByUserId(
         eventOrder: eventOrder,
         ticketCode: eventTicket.ticketCode,
         orderStatus: eventOrder.status,
+        checkedInAt: eventTicket.checkedInAt,
       })
       .from(eventTicket)
       .innerJoin(event, eq(eventTicket.eventId, event.id))
@@ -360,6 +362,59 @@ export async function getTicketsByUserId(
   } catch (err) {
     console.error("getTicketsByUserId error:", err);
     return { data: [], error: err instanceof Error ? err.message : "Failed to get tickets." };
+  }
+}
+
+export type AttendedTicketForCredential = {
+  eventId: string;
+  eventTitle: string;
+  checkedInAt: Date;
+  userWalletAddress: string | null;
+  userId: string;
+};
+
+export async function getAttendedTicketForUser(
+  userId: string,
+  eventId: string
+): Promise<{ data: AttendedTicketForCredential | null; error: string | null }> {
+  try {
+    const rows = await db
+      .select({
+        eventId: event.id,
+        eventTitle: event.title,
+        checkedInAt: eventTicket.checkedInAt,
+        userWalletAddress: user.walletAddress,
+        userId: user.id,
+      })
+      .from(eventTicket)
+      .innerJoin(event, eq(eventTicket.eventId, event.id))
+      .innerJoin(user, eq(eventTicket.userId, user.id))
+      .where(
+        and(
+          eq(eventTicket.userId, userId),
+          eq(eventTicket.eventId, eventId)
+      ))
+      .limit(1);
+    const row = rows[0];
+    if (!row || !row.checkedInAt) {
+      return { data: null, error: null };
+    }
+    return {
+      data: {
+        eventId: row.eventId,
+        eventTitle: row.eventTitle,
+        checkedInAt: row.checkedInAt,
+        userWalletAddress: row.userWalletAddress,
+        userId: row.userId,
+      },
+      error: null,
+    };
+  } catch (err) {
+    console.error("getAttendedTicketForUser error:", err);
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : "Failed to load attendance.",
+    };
   }
 }
 
