@@ -1,41 +1,41 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { notFound,redirect } from "next/navigation";
 import { Calendar, MapPin, Clock, ArrowLeft, User, Users } from "lucide-react";
 import {
-  getEventById,
-  getCategoryById,
-  getHostById,
+  getEvent,
   getAttendeesCountByEventId,
-} from "@/lib/dummy-events";
-import { Button } from "@/components/ui/button";
+} from "@/lib/dashboard/queries";
+import { GetTicketButton } from "./get-ticket-button";
+import { auth } from "@/lib/auth";
+import { isEventPast, formatDisplayDate } from "@/lib/utils";
 
-function isEventPast(eventDate: string): boolean {
-  const today = new Date().toISOString().slice(0, 10);
-  return eventDate < today;
-}
 
-function formatDisplayDate(isoDate: string) {
-  const d = new Date(isoDate);
-  return d.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
-type Props = {
-  params: Promise<{ id: string }>;
-};
 
-export default async function EventDetailPage({ params }: Props) {
+export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const event = getEventById(id);
 
-  if (!event) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) {
+    redirect("/login?callbackUrl=/discover/" + id);
+  }
+
+  const { data: event, error: eventError } = await getEvent(id);
+  if (eventError || !event) {
     notFound();
   }
 
+  const { data: attendeeCount, error: attendeeCountError } = await getAttendeesCountByEventId(id);
+  if (attendeeCountError) {
+    return (
+      <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-6 py-4 text-sm text-destructive">
+        {attendeeCountError}
+      </div>
+    );
+  }
+
+ 
   return (
     <div className="min-h-dvh bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
@@ -74,21 +74,27 @@ export default async function EventDetailPage({ params }: Props) {
 
         <article className="space-y-6">
           <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={event.imageUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
+            {event.imageUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={event.imageUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                <Calendar className="size-16" />
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                {getCategoryById(event.categoryId)?.name ?? "Event"}
+                {event.categoryName}
               </span>
               <span className="text-xs text-muted-foreground">
-                {event.city}, {event.continent}
+                {event.address}
               </span>
             </div>
 
@@ -99,11 +105,11 @@ export default async function EventDetailPage({ params }: Props) {
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-2">
                 <User className="size-4 shrink-0" />
-                Hosted by {getHostById(event.hostedBy)?.name ?? "Unknown"}
+                Hosted by {event.hostedByName ?? "Unknown"}
               </span>
               <span className="flex items-center gap-2">
                 <Users className="size-4 shrink-0" />
-                {getAttendeesCountByEventId(event.id)}{" "}
+                {attendeeCount}{" "}
                 {isEventPast(event.date) ? "went" : "attending"}
               </span>
             </div>
@@ -126,13 +132,17 @@ export default async function EventDetailPage({ params }: Props) {
             <div className="border-t border-border pt-6">
               <h2 className="mb-2 text-sm font-medium">About this event</h2>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                {event.description}
+                {event.description ?? "No description available"}
               </p>
             </div>
 
-            <Button size="lg" className="w-full">
-              Get ticket
-            </Button>
+            <GetTicketButton
+              eventId={event.id}
+              priceCents={event.priceCents}
+              currency={event.currency}
+              isLoggedIn={!!session}
+              hostWalletAddress={event.hostedByWalletAddress}
+            />
           </div>
         </article>
       </main>

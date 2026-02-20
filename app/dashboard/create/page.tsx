@@ -3,7 +3,10 @@ import { getCategories } from "@/lib/dashboard/queries";
 import { CreateEventForm } from "@/components/dashboard/create-event-form";
 
 export default async function CreateEventPage() {
-  const categories = await getCategories();
+  const { data: categories, error } = await getCategories();
+  if (error) {
+    return <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-6 py-4 text-sm text-destructive">{error}</div>;
+  }
 
   return (
     <div>

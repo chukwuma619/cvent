@@ -9,7 +9,6 @@ import {
   User,
 } from "lucide-react";
 import { auth } from "@/lib/auth";
-import { Provider } from "@ckb-ccc/connector-react";
 
 
 export default async function DashboardLayout({
@@ -18,12 +17,11 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) {
+  if (!session) {
     redirect("/login?callbackUrl=/dashboard");
   }
 
   return (
-    <Provider>
     <div className="min-h-dvh bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="container mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
@@ -103,6 +101,5 @@ export default async function DashboardLayout({
         {children}
       </div>
     </div>
-    </Provider>
   );
 }

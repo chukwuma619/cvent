@@ -8,22 +8,13 @@ import {
 } from "@/components/ui/card";
 import { Calendar, MapPin, Clock, ArrowLeft } from "lucide-react";
 import {
-  DUMMY_CATEGORIES,
-  DUMMY_EVENTS,
+  getAllEventsByCategoryId,
+  getCategoriesWithDisplay,
   getCategoryById,
-} from "@/lib/dummy-events";
-import { cn } from "@/lib/utils";
+} from "@/lib/dashboard/queries";
 import { Separator } from "@/components/ui/separator";
+import { formatDisplayDate } from "@/lib/utils";
 
-function formatDisplayDate(isoDate: string) {
-  const d = new Date(isoDate);
-  return d.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 type Props = {
   params: Promise<{ category: string }>;
@@ -31,13 +22,21 @@ type Props = {
 
 export default async function CategoryPage({ params }: Props) {
   const { category: categoryId } = await params;
-  const category = getCategoryById(categoryId);
 
-  if (!category) {
+
+  const { data: category, error: categoryError } = await getCategoryById(categoryId);
+  if (categoryError || !category) {
     notFound();
   }
 
-  const events = DUMMY_EVENTS.filter((e) => e.categoryId === categoryId);
+  const { data: events, error: eventsError } = await getAllEventsByCategoryId(categoryId);
+  if (eventsError) {
+    return (
+      <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-6 py-4 text-sm text-destructive">
+        {eventsError}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-background">
@@ -80,7 +79,7 @@ export default async function CategoryPage({ params }: Props) {
             {category.name}
           </h1>
           <p className="mt-1 text-base text-muted-foreground">
-            {category.description}
+            {category.description ?? ""}
           </p>
           <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="size-4 shrink-0" />
@@ -88,7 +87,7 @@ export default async function CategoryPage({ params }: Props) {
           </p>
         </div>
 
-<Separator className="my-6" />
+        <Separator className="my-6" />
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((event) => (
@@ -102,12 +101,18 @@ export default async function CategoryPage({ params }: Props) {
                 size="default"
               >
                 <div className="relative aspect-[5/3] w-full overflow-hidden bg-muted">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={event.imageUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
+                  {event.imageUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={event.imageUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                      <Calendar className="size-12" />
+                    </div>
+                  )}
                 </div>
                 <CardHeader className="pb-2">
                   <CardTitle className="line-clamp-2 text-base">

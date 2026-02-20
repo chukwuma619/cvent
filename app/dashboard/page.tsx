@@ -1,10 +1,10 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Calendar, MapPin, Clock, Users, UserCheck } from "lucide-react";
+import { Calendar, MapPin, Clock, } from "lucide-react";
 import { auth } from "@/lib/auth";
 import {
   getEventsCreatedByUser,
-  getCategories,
+
 } from "@/lib/dashboard/queries";
 import {
   Card,
@@ -13,30 +13,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-function formatDisplayDate(isoDate: string) {
-  const d = new Date(isoDate);
-  return d.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
+import { formatDisplayDate } from "@/lib/utils";
+import { redirect } from "next/navigation";
 
 export default async function DashboardHomePage() {
   const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
-  if (!userId) {
-    return null;
+
+  if (!session) {
+    redirect("/login");
   }
 
   const { data: eventsData, error: eventsError } =
-    await getEventsCreatedByUser(userId);
-  const categories = await getCategories();
-  const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
+    await getEventsCreatedByUser(session.user.id);
 
-  const events = eventsData ?? [];
 
   if (eventsError) {
     return (
@@ -57,7 +46,7 @@ export default async function DashboardHomePage() {
         </p>
       </div>
 
-      {events.length === 0 ? (
+      {eventsData.length === 0 ? (
         <div className="rounded-lg border border-border bg-muted/30 px-6 py-12 text-center">
           <p className="text-sm text-muted-foreground">
             You haven&apos;t created any events yet.
@@ -68,7 +57,7 @@ export default async function DashboardHomePage() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {events.map((event) => (
+          {eventsData.map((event) => (
             <Link
               key={event.id}
               href={`/dashboard/${event.id}`}
@@ -97,7 +86,7 @@ export default async function DashboardHomePage() {
                     {event.title}
                   </CardTitle>
                   <span className="text-xs font-normal text-muted-foreground">
-                    {categoryMap.get(event.categoryId) ?? event.categoryId}
+                    {event.categoryName}
                   </span>
                 </CardHeader>
                 <CardContent className="space-y-2 pt-0">
@@ -114,10 +103,10 @@ export default async function DashboardHomePage() {
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <MapPin className="size-4 shrink-0" />
                     <span className="line-clamp-1 text-xs">
-                      {event.city}, {event.continent}
+                      {event.address}
                     </span>
                   </div>
-                 
+
                 </CardContent>
               </Card>
             </Link>

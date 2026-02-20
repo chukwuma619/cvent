@@ -1,35 +1,25 @@
-import { notFound } from "next/navigation";
+import { notFound,redirect } from "next/navigation";
 import Link from "next/link";
 import {
   Calendar,
   MapPin,
   Clock,
   ArrowLeft,
-  Users,
-  UserCheck,
 } from "lucide-react";
 import {
   getEventDetails,
-  getCategories,
 } from "@/lib/dashboard/queries";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-function formatDisplayDate(isoDate: string) {
-  const d = new Date(isoDate);
-  return d.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
+import { formatDisplayDate } from "@/lib/utils";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
 
 export default async function EventDetailPage({
@@ -39,16 +29,19 @@ export default async function EventDetailPage({
 }) {
   const { eventId } = await params;
 
+  const session = await auth.api.getSession({ 
+    headers: await headers() 
+  });
+  if (!session) {
+    redirect("/login?callbackUrl=/dashboard/" + eventId);
+  }
+
+
   const { data: eventData, error } = await getEventDetails(eventId);
   if (error || !eventData) {
     notFound();
   }
 
-  const [categories,] = await Promise.all([
-    getCategories(),
-  
-  ]);
-  const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
 
   return (
     <div>
@@ -78,9 +71,12 @@ export default async function EventDetailPage({
         </div>
         <CardHeader className="space-y-1">
           <span className="text-sm font-medium text-muted-foreground">
-            {categoryMap.get(eventData.categoryId) ?? eventData.categoryId}
+            {eventData.categoryName}
           </span>
           <CardTitle className="text-2xl">{eventData.title}</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">
+            Hosted by {eventData.hostedByName}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
