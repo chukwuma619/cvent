@@ -6,6 +6,7 @@ import { user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export type UpdateProfileInput = {
   name?: string;
@@ -78,4 +79,9 @@ export async function updateWalletAddress(walletAddress: string | null) {
         err instanceof Error ? err.message : "Failed to update wallet address.",
     };
   }
+}
+
+export async function signOut() {
+  await auth.api.signOut({ headers: await headers() });
+  redirect("/login");
 }

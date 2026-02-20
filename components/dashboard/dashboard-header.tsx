@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
+import { signOut } from "@/lib/account/actions";
+
 type DashboardHeaderProps = {
   userName: string | null;
 };
@@ -23,22 +25,11 @@ export function DashboardHeader({ userName }: DashboardHeaderProps) {
     <>
       {/* Desktop nav: visible from md up */}
       <nav className="hidden items-center gap-3 md:flex md:gap-4">
-        <Link
-          href="/discover"
-          className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Discover
-        </Link>
-        <Link
-          href="/dashboard"
-          className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
-        >
-          Dashboard
-        </Link>
+       
         <span className="text-sm text-muted-foreground truncate max-w-[140px] lg:max-w-[200px]">
           {userName}
         </span>
-        <form action="/api/auth/sign-out" method="POST">
+        <form action={signOut}>
           <button
             type="submit"
             className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
