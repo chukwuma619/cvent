@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { Calendar, QrCode, ShieldCheck, ArrowRight } from "lucide-react";
+import {
+  Calendar,
+  QrCode,
+  ShieldCheck,
+  ArrowRight,
+  Wallet,
+  Ticket,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
@@ -34,11 +41,11 @@ export default function Home() {
         {/* Hero */}
         <section className="container mx-auto max-w-4xl px-4 py-20 text-center sm:py-28">
           <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            Events with proof of attendance on CKB
+            Event ticketing and proof of attendance on CKB
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-            Discover CKB community events, check in at the door or online, and
-            receive verifiable proof-of-attendance credentials for bounties,
+            Discover events, register free or pay in CKB, check in at the door
+            with a ticket or QR code, and get a signed credential for bounties,
             DAOs, and reputation.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -54,16 +61,17 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Features */}
+        {/* Attendees */}
         <section className="border-t border-border bg-muted/30">
           <div className="container mx-auto max-w-5xl px-4 py-16 sm:py-20">
             <h2 className="text-center text-2xl font-semibold tracking-tight text-foreground">
-              How it works
+              For attendees
             </h2>
             <p className="mx-auto mt-2 max-w-xl text-center text-muted-foreground">
-              One place to discover events, check in, and get verifiable proof.
+              Discover events, get tickets, check in, and collect verifiable
+              proof.
             </p>
-            <div className="mt-12 grid gap-8 sm:grid-cols-3">
+            <div className="mt-12 grid gap-8 sm:grid-cols-4">
               <div className="flex flex-col items-center text-center">
                 <div className="flex size-12 items-center justify-center rounded-lg border border-border bg-background">
                   <Calendar className="size-6 text-primary" />
@@ -72,8 +80,20 @@ export default function Home() {
                   Discover events
                 </h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Browse CKB community meetups, workshops, conferences, and
-                  more. Filter by category and find events near you.
+                  Browse meetups, workshops, and conferences. Filter by category
+                  and find events near you.
+                </p>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="flex size-12 items-center justify-center rounded-lg border border-border bg-background">
+                  <Ticket className="size-6 text-primary" />
+                </div>
+                <h3 className="mt-4 font-medium text-foreground">
+                  Get tickets
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Register for free or pay in CKB. Your ticket includes a unique
+                  code and QR to show at the door.
                 </p>
               </div>
               <div className="flex flex-col items-center text-center">
@@ -84,8 +104,8 @@ export default function Home() {
                   Check in
                 </h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Scan a QR code or enter a check-in code at the event. Optional
-                  offline check-in for low-connectivity venues.
+                  Organizers scan your QR or enter your code at the door so your
+                  attendance is recorded.
                 </p>
               </div>
               <div className="flex flex-col items-center text-center">
@@ -93,12 +113,62 @@ export default function Home() {
                   <ShieldCheck className="size-6 text-primary" />
                 </div>
                 <h3 className="mt-4 font-medium text-foreground">
-                  Verifiable proof
+                  Get proof
                 </h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Receive a signed proof-of-attendance credential. Use it for
-                  bounties, DAO roles, and reputation—verifiable by third
-                  parties.
+                  After check-in, download a signed proof-of-attendance
+                  credential for bounties, DAO roles, and reputation.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Organizers */}
+        <section className="border-t border-border">
+          <div className="container mx-auto max-w-5xl px-4 py-16 sm:py-20">
+            <h2 className="text-center text-2xl font-semibold tracking-tight text-foreground">
+              For organizers
+            </h2>
+            <p className="mx-auto mt-2 max-w-xl text-center text-muted-foreground">
+              Create events, sell tickets in CKB, check in attendees, and track
+              earnings.
+            </p>
+            <div className="mt-12 grid gap-8 sm:grid-cols-3">
+              <div className="flex flex-col items-center text-center">
+                <div className="flex size-12 items-center justify-center rounded-lg border border-border bg-background">
+                  <Calendar className="size-6 text-primary" />
+                </div>
+                <h3 className="mt-4 font-medium text-foreground">
+                  Create events
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Publish free or paid events with title, date, location, and
+                  image. Set a price in CKB and receive payouts to your wallet.
+                </p>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="flex size-12 items-center justify-center rounded-lg border border-border bg-background">
+                  <QrCode className="size-6 text-primary" />
+                </div>
+                <h3 className="mt-4 font-medium text-foreground">
+                  Check in
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Use ticket code or QR scan at the door to mark attendees as
+                  checked in. View the attendee list in your dashboard.
+                </p>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="flex size-12 items-center justify-center rounded-lg border border-border bg-background">
+                  <Wallet className="size-6 text-primary" />
+                </div>
+                <h3 className="mt-4 font-medium text-foreground">
+                  Earnings
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  See paid registrations, total CKB earned, and links to
+                  on-chain transactions. Optional on-chain verification.
                 </p>
               </div>
             </div>
@@ -109,11 +179,11 @@ export default function Home() {
         <section className="container mx-auto max-w-4xl px-4 py-16 sm:py-20">
           <div className="rounded-lg border border-border bg-card px-6 py-12 text-center shadow-sm sm:px-12">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              Ready to explore?
+              Get started
             </h2>
             <p className="mt-2 text-muted-foreground">
-              Browse events or create an account to check in and collect proof
-              of attendance.
+              Discover events or create an account to host events, get tickets,
+              and collect proof of attendance.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button asChild size="lg" className="gap-2">
