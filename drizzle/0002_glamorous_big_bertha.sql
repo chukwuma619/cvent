@@ -1,0 +1,1 @@
+ALTER TABLE "event_order" ALTER COLUMN "amount_ckb_shannons" SET DATA TYPE bigint;

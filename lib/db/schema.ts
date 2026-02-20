@@ -5,6 +5,7 @@ import {
   boolean,
   index,
   integer,
+  bigint,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -142,7 +143,7 @@ export const eventOrder = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    amountCkbShannons: integer("amount_ckb_shannons").notNull(),
+    amountCkbShannons: bigint("amount_ckb_shannons", { mode: "number" }).notNull(),
     status: text("status").notNull(),
     txHash: text("tx_hash"),
     createdAt: timestamp("created_at").defaultNow().notNull(),

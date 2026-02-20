@@ -19,12 +19,16 @@ function formatPrice(priceCents: number, currency: string): string {
   return `${value.toFixed(2)} ${currency}`;
 }
 
+type PendingPayment = { txHash: string; amountCkbShannons: number };
+
 type Props = {
   eventId: string;
   priceCents: number;
   currency: string;
   isLoggedIn: boolean;
   hostWalletAddress: string | null;
+  hasTicket?: boolean;
+  pendingPayment?: PendingPayment;
 };
 
 export function GetTicketButton({
@@ -33,18 +37,26 @@ export function GetTicketButton({
   currency,
   isLoggedIn,
   hostWalletAddress,
+  hasTicket = false,
+  pendingPayment,
 }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [ckbPrice, setCkbPrice] = useState<number | null>(null);
   const [priceError, setPriceError] = useState<string | null>(null);
-  const [pendingConfirmation, setPendingConfirmation] = useState<{
-    txHash: string;
-    amountCkbShannons: number;
-  } | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingPayment | null>(
+    () => pendingPayment ?? null
+  );
   const [polling, setPolling] = useState(false);
   const pollCountRef = useRef(0);
   const { open: openWalletModal, signerInfo, client } = useCcc();
+
+  // When server reports a pending payment (e.g. after page refresh), sync client state so we show "Transaction submitted" and poll.
+  useEffect(() => {
+    if (pendingPayment && !pendingConfirmation) {
+      setPendingConfirmation(pendingPayment);
+    }
+  }, [pendingPayment, pendingConfirmation]);
 
   const fetchCkbPrice = useCallback(async () => {
     try {
@@ -77,7 +89,7 @@ export function GetTicketButton({
         txHash,
         amountCkbShannons
       );
-      if (result.success) {
+      if (result.success && "ticketCode" in result) {
         toast.success("Ticket confirmed!");
         router.push("/dashboard/tickets");
         router.refresh();
@@ -126,6 +138,20 @@ export function GetTicketButton({
           Get ticket
         </Link>
       </Button>
+    );
+  }
+
+  if (hasTicket) {
+    return (
+      <div className="space-y-3">
+        <div className="rounded-md border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">You have a ticket</p>
+          <p className="mt-1">View and manage your tickets in the dashboard.</p>
+        </div>
+        <Button size="lg" className="w-full" asChild>
+          <Link href="/dashboard/tickets">View my tickets</Link>
+        </Button>
+      </div>
     );
   }
 
@@ -215,14 +241,14 @@ export function GetTicketButton({
                 txHash,
                 amountCkbShannons
               );
-              if (result.success) {
+              if (result.success && "ticketCode" in result) {
                 toast.success("Ticket confirmed!");
                 router.push("/dashboard/tickets");
                 router.refresh();
-              } else if (result.error?.includes("could not be verified on-chain")) {
+              } else if (result.success && result.pendingVerification) {
                 setPendingConfirmation({ txHash, amountCkbShannons });
-                toast.info("Transaction sent. Waiting for confirmation…");
-              } else {
+                toast.info("Payment recorded. Waiting for on-chain confirmation…");
+              } else if (!result.success) {
                 toast.error(result.error);
               }
             } catch (err) {

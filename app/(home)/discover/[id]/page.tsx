@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { notFound,redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Calendar, MapPin, Clock, ArrowLeft, User, Users } from "lucide-react";
 import {
   getEvent,
   getAttendeesCountByEventId,
+  getUserHasTicketForEvent,
+  getUserPendingPaymentForEvent,
 } from "@/lib/dashboard/queries";
+import { verifyPendingOrderForUserEvent } from "@/lib/discover/actions";
 import { GetTicketButton } from "./get-ticket-button";
 import { auth } from "@/lib/auth";
 import { isEventPast, formatDisplayDate } from "@/lib/utils";
@@ -17,9 +20,6 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
 
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) {
-    redirect("/login?callbackUrl=/discover/" + id);
-  }
 
   const { data: event, error: eventError } = await getEvent(id);
   if (eventError || !event) {
@@ -35,7 +35,18 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     );
   }
 
- 
+  let hasTicket = false;
+  let pendingPayment: { txHash: string; amountCkbShannons: number } | undefined;
+  if (session) {
+    await verifyPendingOrderForUserEvent(id, session.user.id);
+    const [ticketRes, pendingRes] = await Promise.all([
+      getUserHasTicketForEvent(session.user.id, id),
+      getUserPendingPaymentForEvent(session.user.id, id),
+    ]);
+    hasTicket = ticketRes.data ?? false;
+    pendingPayment = pendingRes.data ?? undefined;
+  }
+
   return (
     <main className="container mx-auto max-w-3xl px-4 py-8">
     <Link
@@ -116,6 +127,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           currency={event.currency}
           isLoggedIn={!!session}
           hostWalletAddress={event.hostedByWalletAddress}
+          hasTicket={hasTicket}
+          pendingPayment={pendingPayment}
         />
       </div>
     </article>

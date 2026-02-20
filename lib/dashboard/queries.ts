@@ -373,6 +373,71 @@ export type AttendedTicketForCredential = {
   userId: string;
 };
 
+export async function getUserHasTicketForEvent(
+  userId: string,
+  eventId: string
+): Promise<{ data: boolean; error: string | null }> {
+  try {
+    const [row] = await db
+      .select({ id: eventTicket.id })
+      .from(eventTicket)
+      .where(
+        and(
+          eq(eventTicket.userId, userId),
+          eq(eventTicket.eventId, eventId)
+        )
+      )
+      .limit(1);
+    return { data: !!row, error: null };
+  } catch (err) {
+    console.error("getUserHasTicketForEvent error:", err);
+    return {
+      data: false,
+      error: err instanceof Error ? err.message : "Failed to check ticket.",
+    };
+  }
+}
+
+/** If the user has a paid-event order still pending on-chain verification, return it so the UI can resume polling. */
+export async function getUserPendingPaymentForEvent(
+  userId: string,
+  eventId: string
+): Promise<{
+  data: { txHash: string; amountCkbShannons: number } | null;
+  error: string | null;
+}> {
+  try {
+    const [row] = await db
+      .select({
+        txHash: eventOrder.txHash,
+        amountCkbShannons: eventOrder.amountCkbShannons,
+      })
+      .from(eventOrder)
+      .where(
+        and(
+          eq(eventOrder.userId, userId),
+          eq(eventOrder.eventId, eventId),
+          eq(eventOrder.status, "pending_verification")
+        )
+      )
+      .limit(1);
+    if (!row?.txHash) return { data: null, error: null };
+    return {
+      data: {
+        txHash: row.txHash,
+        amountCkbShannons: row.amountCkbShannons ?? 0,
+      },
+      error: null,
+    };
+  } catch (err) {
+    console.error("getUserPendingPaymentForEvent error:", err);
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : "Failed to check pending payment.",
+    };
+  }
+}
+
 export async function getAttendedTicketForUser(
   userId: string,
   eventId: string

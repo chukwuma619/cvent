@@ -100,7 +100,9 @@ function toLockScriptLike(script: {
 
 /**
  * Parse CKB address to lock script using CCC SDK (@ckb-ccc/core).
- * Uses ClientJsonRpc so we can create a client from RPC URL on the server.
+ * Address.fromString requires clients keyed by address prefix (ckb/ckt); base
+ * ClientJsonRpc has no addressPrefix, so we use ClientPublicMainnet and
+ * ClientPublicTestnet with the same RPC URL.
  * Returns null if parsing fails (e.g. invalid address or RPC error).
  */
 async function addressToLockScript(
@@ -108,19 +110,17 @@ async function addressToLockScript(
   rpcUrl: string
 ): Promise<LockScriptLike | null> {
   try {
-    // ClientJsonRpc is the concrete RPC client; TypeScript marks the base Client as abstract.
-    const ClientRpc = ccc.ClientJsonRpc as unknown as new (
-      url: string
-    ) => Parameters<typeof ccc.Address.fromString>[1];
-    const client = new ClientRpc(rpcUrl);
-    const addr = await ccc.Address.fromString(
-      address.trim(),
-      client as Parameters<typeof ccc.Address.fromString>[1]
-    );
+    const config = { url: rpcUrl };
+    const clients = {
+      ckb: new ccc.ClientPublicMainnet(config),
+      ckt: new ccc.ClientPublicTestnet(config),
+    };
+    const addr = await ccc.Address.fromString(address.trim(), clients);
     const script = (addr as unknown as { script?: Record<string, unknown> }).script;
     if (!script || typeof script !== "object") return null;
     return toLockScriptLike(script as Parameters<typeof toLockScriptLike>[0]);
-  } catch {
+  } catch (err) {
+    console.error("addressToLockScript:", err instanceof Error ? err.message : err);
     return null;
   }
 }
