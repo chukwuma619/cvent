@@ -46,17 +46,30 @@ export function WalletSection({ walletAddress }: { walletAddress: string | null 
     setRemoving(false);
   }
 
-  // Auto-sync: when user connects via CCC, get address from signer and save to DB
   useEffect(() => {
     const signer = signerInfo?.signer;
     if (!signer || !wallet) return;
 
     const syncAddress = async () => {
       try {
-        const s = signer as unknown as { getAddress?: () => Promise<string> };
-        if (typeof s.getAddress !== "function") return;
-        const addr = await s.getAddress();
-        if (!addr || addr === syncedRef.current) return;
+        const s = signer as unknown as {
+          getRecommendedAddress?: () => Promise<string>;
+          getAddress?: () => Promise<string>;
+        };
+        const addr = await (typeof s.getRecommendedAddress === "function"
+          ? s.getRecommendedAddress()
+          : typeof s.getAddress === "function"
+            ? s.getAddress()
+            : Promise.resolve(null));
+        if (!addr || addr === syncedRef.current) {
+          if (!addr && (s.getRecommendedAddress || s.getAddress)) {
+            setMessage({
+              type: "error",
+              text: "Could not read address from wallet.",
+            });
+          }
+          return;
+        }
         syncedRef.current = addr;
         setLiveAddress(addr);
         const result = await updateWalletAddress(addr);
@@ -93,9 +106,11 @@ export function WalletSection({ walletAddress }: { walletAddress: string | null 
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" variant="outline" onClick={openWalletModal}>
-            Connect wallet
-          </Button>
+          {!displayAddress && (
+            <Button type="button" variant="outline" onClick={openWalletModal}>
+              Connect wallet
+            </Button>
+          )}
           {displayAddress && (
             <>
               <p

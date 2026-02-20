@@ -1,17 +1,21 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { getWalletByUserId } from "@/lib/account/actions";
 import { AccountForm } from "@/components/dashboard/account-form";
 import { WalletSection } from "@/components/dashboard/wallet-section";
 
 export default async function DashboardAccountPage() {
-  const session = await auth.api.getSession({ 
-    headers: await headers() 
+  const session = await auth.api.getSession({
+    headers: await headers(),
   });
 
   if (!session) {
     redirect("/login?callbackUrl=/dashboard/account");
   }
+
+  const wallet = await getWalletByUserId(session.user.id);
+  const walletAddress = wallet?.address ?? session.user.walletAddress ?? null;
 
   return (
     <div>
@@ -26,7 +30,7 @@ export default async function DashboardAccountPage() {
       />
 
       <WalletSection
-        walletAddress={session.user.walletAddress}
+        walletAddress={walletAddress}
       />
     </div>
   );
