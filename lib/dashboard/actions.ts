@@ -11,33 +11,25 @@ export type CreateEventInput = Omit<
   "id" | "hostedBy" | "createdAt" | "updatedAt"
 >;
 
-export async function createEvent({ data }: { data: CreateEventInput }) {
+export async function createEvent({ data, userId }: { data: CreateEventInput, userId: string }) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    const userId = session?.user?.id;
-    if (!userId) {
-      return {
-        success: false as const,
-        error: "You must be signed in to create an event.",
-      };
-    }
-    const id = crypto.randomUUID();
+    
     const [inserted] = await db
       .insert(event)
       .values({
         ...data,
-        id,
+        id: crypto.randomUUID(),
         hostedBy: userId,
       })
       .returning();
     if (!inserted) {
-      return { success: false as const, error: "Failed to create event." };
+      return { data: null, error: "Failed to create event." };
     }
-    return { success: true as const, eventId: inserted.id };
+    return { data: inserted, error: null };
   } catch (err) {
     console.error("createEvent error:", err);
     return {
-      success: false as const,
+      data: null,
       error: err instanceof Error ? err.message : "Failed to create event.",
     };
   }

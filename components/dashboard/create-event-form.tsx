@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { AddressAutocompleteInput } from "@/components/dashboard/address-autocomplete-input";
 import { useState, useRef, useEffect } from "react";
 import { upload } from "@vercel/blob/client";
 import {
@@ -276,13 +277,20 @@ export function CreateEventForm({ categories }: CreateEventFormProps) {
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>Address</FieldLabel>
                   <div className="relative">
-                    <MapPin className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-                    <Input
-                      {...field}
+                    <MapPin className="absolute left-2.5 top-2.5 size-4 text-muted-foreground pointer-events-none z-10" />
+                    <AddressAutocompleteInput
                       id={field.name}
+                      value={field.value}
+                      onChange={field.onChange}
                       placeholder="Full address"
-                      className="pl-8"
                       aria-invalid={fieldState.invalid}
+                      onPlaceSelect={({ locality }) => {
+                        if (locality) {
+                          form.setValue("city", locality, {
+                            shouldValidate: true,
+                          });
+                        }
+                      }}
                     />
                   </div>
                   {fieldState.invalid && (

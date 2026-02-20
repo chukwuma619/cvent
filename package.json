@@ -12,6 +12,7 @@
     "@base-ui/react": "^1.2.0",
     "@ckb-ccc/connector-react": "^1.0.34",
     "@ckb-ccc/core": "^1.12.5",
+    "@googlemaps/js-api-loader": "^2.0.2",
     "@hookform/resolvers": "^5.2.2",
     "@neondatabase/serverless": "^1.0.2",
     "@nervosnetwork/ckb-sdk-core": "^0.109.5",
@@ -43,6 +44,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/google.maps": "^3.58.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
