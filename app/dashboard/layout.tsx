@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { getWalletByUserId } from "@/lib/account/actions";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardAside } from "@/components/dashboard/dashboard-aside";
 
@@ -16,6 +17,8 @@ export default async function DashboardLayout({
   }
 
   const userName = session.user.name ?? session.user.email ?? null;
+  const wallet = await getWalletByUserId(session.user.id);
+  const walletAddress = wallet?.address ?? session.user.walletAddress ?? null;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -27,7 +30,7 @@ export default async function DashboardLayout({
           >
             cvent
           </Link>
-          <DashboardHeader userName={userName} />
+          <DashboardHeader userName={userName} walletAddress={walletAddress} />
         </div>
       </header>
 
