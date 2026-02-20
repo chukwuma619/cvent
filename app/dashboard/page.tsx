@@ -37,8 +37,8 @@ export default async function DashboardHomePage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
           Events you created
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -47,11 +47,11 @@ export default async function DashboardHomePage() {
       </div>
 
       {eventsData.length === 0 ? (
-        <div className="rounded-lg border border-border bg-muted/30 px-6 py-12 text-center">
+        <div className="rounded-lg border border-border bg-muted/30 px-4 py-10 text-center sm:px-6 sm:py-12">
           <p className="text-sm text-muted-foreground">
             You haven&apos;t created any events yet.
           </p>
-          <Button asChild className="mt-4" variant="outline">
+          <Button asChild className="mt-4 min-h-10 px-4" variant="outline">
             <Link href="/dashboard/create">Create your first event</Link>
           </Button>
         </div>

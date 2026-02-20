@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Provider } from "@ckb-ccc/connector-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
+import { ConnectorReactClientProvider } from "@/components/provider/connector-react-client";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,12 +30,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Provider>
+        <ConnectorReactClientProvider>
           <TooltipProvider>
             {children}
             <Toaster />
           </TooltipProvider>
-        </Provider>
+        </ConnectorReactClientProvider>
       </body>
     </html>
   );
