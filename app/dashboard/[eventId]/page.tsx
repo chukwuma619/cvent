@@ -7,7 +7,7 @@ import {
   ArrowLeft,
   Pencil,
 } from "lucide-react";
-import { getEventDetails } from "@/lib/dashboard/queries";
+import { getEventDetails, getAttendeesByEventId } from "@/lib/dashboard/queries";
 import {
   Card,
   CardContent,
@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { formatDisplayDate } from "@/lib/utils";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { CheckInSection } from "@/components/dashboard/check-in-section";
 
 export default async function EventDetailPage({
   params,
@@ -40,6 +41,9 @@ export default async function EventDetailPage({
   }
 
   const isOwner = eventData.hostedBy === session.user.id;
+  const { data: attendees = [] } = isOwner
+    ? await getAttendeesByEventId(eventId)
+    : { data: [] };
 
   return (
     <div>
@@ -111,6 +115,12 @@ export default async function EventDetailPage({
 
         </CardContent>
       </Card>
+
+      {isOwner && (
+        <div className="mt-6">
+          <CheckInSection eventId={eventId} attendees={attendees} />
+        </div>
+      )}
     </div>
   );
 }

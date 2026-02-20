@@ -1,11 +1,11 @@
-import { count, eq } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   event,
   category,
   user,
   eventOrder,
-  eventAttendees,
+  eventTicket,
   type Event,
 } from "@/lib/db/schema";
 
@@ -253,12 +253,46 @@ export async function getAttendeesCountByEventId(
   try {
     const [row] = await db
       .select({ count: count() })
-      .from(eventAttendees)
-      .where(eq(eventAttendees.eventId, eventId));
+        .from(eventTicket)
+      .where(eq(eventTicket.eventId, eventId));
     return { data: row.count, error: null };
   } catch (err) {
     console.error("getAttendeesCountByEventId error:", err);
     return { data: 0, error: err instanceof Error ? err.message : "Failed to get attendees count." };
+  }
+}
+
+export type EventAttendeeWithUser = {
+  id: string;
+  userName: string;
+  userEmail: string;
+  ticketCode: string;
+  checkedInAt: Date | null;
+};
+
+export async function getAttendeesByEventId(
+  eventId: string
+): Promise<{ data: EventAttendeeWithUser[]; error: string | null }> {
+  try {
+    const rows = await db
+      .select({
+        id: eventTicket.id,
+        userName: user.name,
+        userEmail: user.email,
+        ticketCode: eventTicket.ticketCode,
+        checkedInAt: eventTicket.checkedInAt,
+      })
+      .from(eventTicket)
+      .innerJoin(user, eq(eventTicket.userId, user.id))
+      .where(eq(eventTicket.eventId, eventId))
+      .orderBy(asc(eventTicket.createdAt));
+    return { data: rows, error: null };
+  } catch (err) {
+    console.error("getAttendeesByEventId error:", err);
+    return {
+      data: [],
+      error: err instanceof Error ? err.message : "Failed to get attendees.",
+    };
   }
 }
 
@@ -276,13 +310,13 @@ export async function getTicketsByUserId(
       .select({
         event: event,
         eventOrder: eventOrder,
-        ticketCode: eventAttendees.ticketCode,
+        ticketCode: eventTicket.ticketCode,
         orderStatus: eventOrder.status,
       })
-      .from(eventAttendees)
-      .innerJoin(event, eq(eventAttendees.eventId, event.id))
-      .innerJoin(eventOrder, eq(eventAttendees.eventOrderId, eventOrder.id))
-      .where(eq(eventAttendees.userId, userId));
+      .from(eventTicket)
+      .innerJoin(event, eq(eventTicket.eventId, event.id))
+        .innerJoin(eventOrder, eq(eventTicket.eventOrderId, eventOrder.id))
+      .where(eq(eventTicket.userId, userId));
     return { data: rows, error: null };
   } catch (err) {
     console.error("getTicketsByUserId error:", err);

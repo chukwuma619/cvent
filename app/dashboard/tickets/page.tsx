@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDisplayDate } from "@/lib/utils";
+import { TicketQR } from "@/components/dashboard/ticket-qr";
 
 
 export default async function MyTicketsPage() {
@@ -33,7 +34,7 @@ export default async function MyTicketsPage() {
           My tickets
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Events you registered for. Use your ticket code at the door.
+          Events you registered for. Show the QR code or ticket code at the door.
         </p>
       </div>
 
@@ -73,7 +74,16 @@ export default async function MyTicketsPage() {
                   {ticketCode}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2 pt-0">
+              <CardContent className="space-y-3 pt-0">
+                <div className="flex flex-col items-center gap-2 rounded-md border border-border bg-muted/30 p-3">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Show at door
+                  </span>
+                  <TicketQR ticketCode={ticketCode} size={120} />
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {ticketCode}
+                  </span>
+                </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Calendar className="size-4 shrink-0" />
                   <span className="text-xs">

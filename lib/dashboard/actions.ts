@@ -1,9 +1,10 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { event, type Event } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { event, eventTicket, type Event } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
 export type CreateEventInput = Omit<
@@ -61,6 +62,68 @@ export async function updateEvent(eventId: string, data: Partial<CreateEventInpu
     return {
       data: null,
       error: err instanceof Error ? err.message : "Failed to update event.",
+    };
+  }
+}
+
+export type CheckInResult =
+  | { success: true; alreadyCheckedIn?: boolean }
+  | { success: false; error: string };
+
+export async function checkInAttendee(
+  eventId: string,
+  ticketCode: string
+): Promise<CheckInResult> {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return { success: false, error: "You must be signed in." };
+    }
+
+    const [eventRow] = await db
+      .select({ hostedBy: event.hostedBy })
+      .from(event)
+      .where(eq(event.id, eventId))
+      .limit(1);
+    if (!eventRow || eventRow.hostedBy !== session.user.id) {
+      return { success: false, error: "You can only check in attendees for your own events." };
+    }
+
+    const code = ticketCode.trim().toUpperCase();
+    if (!code) {
+      return { success: false, error: "Enter a ticket code." };
+    }
+
+    const [attendee] = await db
+      .select({ id: eventTicket.id, checkedInAt: eventTicket.checkedInAt })
+      .from(eventTicket)
+      .where(
+        and(
+          eq(eventTicket.eventId, eventId),
+          eq(eventTicket.ticketCode, code)
+        )
+      )
+      .limit(1);
+
+    if (!attendee) {
+      return { success: false, error: "Ticket not found for this event." };
+    }
+    if (attendee.checkedInAt) {
+      return { success: true, alreadyCheckedIn: true };
+    }
+
+    await db
+      .update(eventTicket)
+      .set({ checkedInAt: new Date() })
+      .where(eq(eventTicket.id, attendee.id));
+
+    revalidatePath(`/dashboard/${eventId}`);
+    return { success: true };
+  } catch (err) {
+    console.error("checkInAttendee error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Check-in failed.",
     };
   }
 }

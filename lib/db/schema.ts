@@ -158,8 +158,8 @@ export const eventOrder = pgTable(
   ],
 );
 export type EventOrder = typeof eventOrder.$inferSelect;
-export const eventAttendees = pgTable(
-  "event_attendees",
+export const eventTicket = pgTable(
+  "event_ticket",
   {
     id: text("id").primaryKey(),
     eventId: text("event_id")
@@ -182,9 +182,9 @@ export const eventAttendees = pgTable(
       .notNull(),
   },
   (table) => [
-    index("event_attendees_eventId_userId_idx").on(table.eventId, table.userId),
-    index("event_attendees_eventOrderId_idx").on(table.eventOrderId),
-    index("event_attendees_ticketCode_idx").on(table.ticketCode),
+    index("event_ticket_eventId_userId_idx").on(table.eventId, table.userId),
+    index("event_ticket_eventOrderId_idx").on(table.eventOrderId),
+    index("event_ticket_ticketCode_idx").on(table.ticketCode),
   ],
 );
-export type EventAttendees = typeof eventAttendees.$inferSelect;
+export type EventTicket = typeof eventTicket.$inferSelect;
