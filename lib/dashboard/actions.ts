@@ -11,9 +11,21 @@ export type CreateEventInput = Omit<
   "id" | "hostedBy" | "createdAt" | "updatedAt"
 >;
 
-export async function createEvent({ data, userId }: { data: CreateEventInput, userId: string }) {
+export async function createEvent({
+  data,
+  userId: userIdParam,
+}: {
+  data: CreateEventInput;
+  userId?: string;
+}) {
   try {
-    
+    const userId =
+      userIdParam ??
+      (await auth.api.getSession({ headers: await headers() }))?.user?.id;
+    if (!userId) {
+      return { success: false as const, error: "You must be signed in." };
+    }
+
     const [inserted] = await db
       .insert(event)
       .values({
@@ -23,13 +35,13 @@ export async function createEvent({ data, userId }: { data: CreateEventInput, us
       })
       .returning();
     if (!inserted) {
-      return { data: null, error: "Failed to create event." };
+      return { success: false as const, error: "Failed to create event." };
     }
-    return { data: inserted, error: null };
+    return { success: true as const, eventId: inserted.id };
   } catch (err) {
     console.error("createEvent error:", err);
     return {
-      data: null,
+      success: false as const,
       error: err instanceof Error ? err.message : "Failed to create event.",
     };
   }
@@ -42,8 +54,10 @@ export async function updateEvent(eventId: string, data: Partial<CreateEventInpu
       .set(data)
       .where(eq(event.id, eventId))
       .returning();
-    return { data: updated ?? null, error: null };
+
+    return { data: updated, error: null };
   } catch (err) {
+    console.error("updateEvent error:", err);
     return {
       data: null,
       error: err instanceof Error ? err.message : "Failed to update event.",

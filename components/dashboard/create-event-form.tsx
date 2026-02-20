@@ -40,9 +40,25 @@ import { useState, useRef, useEffect } from "react";
 import { upload } from "@vercel/blob/client";
 import {
   createEvent,
+  updateEvent,
   type CreateEventInput,
 } from "@/lib/dashboard/actions";
 import type { CategoryOption } from "@/lib/dashboard/queries";
+
+export type EventFormInitialData = {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  address: string;
+  imageUrl?: string | null;
+  categoryId: string;
+  city: string;
+  continent: string;
+  priceCents: number;
+  currency: "USD" | "EUR" | "GBP";
+};
 
 const createEventSchema = z.object({
   title: z
@@ -81,11 +97,19 @@ const CONTINENTS = [
 
 type CreateEventFormProps = {
   categories: CategoryOption[];
+  mode?: "create" | "edit";
+  eventId?: string;
+  initialData?: EventFormInitialData;
 };
 
 const UPLOAD_HANDLER = "/api/upload";
 
-export function CreateEventForm({ categories }: CreateEventFormProps) {
+export function CreateEventForm({
+  categories,
+  mode = "create",
+  eventId,
+  initialData,
+}: CreateEventFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -93,6 +117,7 @@ export function CreateEventForm({ categories }: CreateEventFormProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const isEdit = mode === "edit" && eventId && initialData;
 
   useEffect(() => {
     return () => {
@@ -102,19 +127,33 @@ export function CreateEventForm({ categories }: CreateEventFormProps) {
 
   const form = useForm<CreateEventFormValues>({
     resolver: zodResolver(createEventSchema) as Resolver<CreateEventFormValues>,
-    defaultValues: {
-      title: "",
-      description: "",
-      date: "",
-      time: "",
-      address: "",
-      imageUrl: "",
-      categoryId: "",
-      city: "",
-      continent: "",
-      priceDollars: 0,
-      currency: "USD",
-    },
+    defaultValues: initialData
+      ? {
+          title: initialData.title,
+          description: initialData.description,
+          date: initialData.date,
+          time: initialData.time,
+          address: initialData.address,
+          imageUrl: initialData.imageUrl ?? "",
+          categoryId: initialData.categoryId,
+          city: initialData.city,
+          continent: initialData.continent,
+          priceDollars: initialData.priceCents / 100,
+          currency: initialData.currency,
+        }
+      : {
+          title: "",
+          description: "",
+          date: "",
+          time: "",
+          address: "",
+          imageUrl: "",
+          categoryId: "",
+          city: "",
+          continent: "",
+          priceDollars: 0,
+          currency: "USD",
+        },
   });
 
   async function onSubmit(values: CreateEventFormValues) {
@@ -122,7 +161,7 @@ export function CreateEventForm({ categories }: CreateEventFormProps) {
     setSubmitError(null);
     setUploadError(null);
 
-    let imageUrl: string | null = null;
+    let imageUrl: string | null = isEdit ? initialData!.imageUrl ?? null : null;
     if (selectedFile) {
       try {
         const pathname = `events/${crypto.randomUUID()}-${selectedFile.name.replace(/\s+/g, "-")}`;
@@ -153,6 +192,19 @@ export function CreateEventForm({ categories }: CreateEventFormProps) {
       priceCents: Math.round(values.priceDollars * 100),
       currency: values.currency,
     };
+
+    if (isEdit) {
+      const result = await updateEvent(eventId!, input);
+      setLoading(false);
+      if (result.data) {
+        router.push(`/dashboard/${eventId}`);
+        router.refresh();
+        return;
+      }
+      setSubmitError(result.error ?? null);
+      return;
+    }
+
     const result = await createEvent({ data: input });
     setLoading(false);
     if (result.success) {
@@ -166,10 +218,13 @@ export function CreateEventForm({ categories }: CreateEventFormProps) {
   return (
     <Card className="border-border/80 shadow-lg shadow-primary/5">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-xl">Create an event</CardTitle>
+        <CardTitle className="text-xl">
+          {isEdit ? "Edit event" : "Create an event"}
+        </CardTitle>
         <CardDescription>
-          Add a new event. You can manage attendees and check-in from the event
-          page.
+          {isEdit
+            ? "Update the details below. Changes will appear on your dashboard and in discover."
+            : "Add a new event. You can manage attendees and check-in from the event page."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -356,11 +411,11 @@ export function CreateEventForm({ categories }: CreateEventFormProps) {
                         {uploadError}
                       </p>
                     )}
-                    {previewUrl && (
+                    {(previewUrl || (isEdit && initialData?.imageUrl && !selectedFile)) && (
                       <div className="relative aspect-video max-w-sm overflow-hidden rounded-md border border-border bg-muted">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={previewUrl}
+                          src={previewUrl ?? (initialData?.imageUrl ?? "")}
                           alt="Event preview"
                           className="h-full w-full object-cover"
                         />
@@ -506,12 +561,20 @@ export function CreateEventForm({ categories }: CreateEventFormProps) {
 
             <div className="flex gap-4 pt-2">
               <Button type="submit" disabled={loading}>
-                {loading ? <Spinner /> : "Create event"}
+                {loading ? (
+                  <Spinner />
+                ) : isEdit ? (
+                  "Save changes"
+                ) : (
+                  "Create event"
+                )}
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.push("/dashboard")}
+                onClick={() =>
+                  router.push(isEdit ? `/dashboard/${eventId}` : "/dashboard")
+                }
                 disabled={loading}
               >
                 Cancel

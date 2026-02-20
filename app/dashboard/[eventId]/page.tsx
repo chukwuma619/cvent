@@ -1,14 +1,13 @@
-import { notFound,redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import {
   Calendar,
   MapPin,
   Clock,
   ArrowLeft,
+  Pencil,
 } from "lucide-react";
-import {
-  getEventDetails,
-} from "@/lib/dashboard/queries";
+import { getEventDetails } from "@/lib/dashboard/queries";
 import {
   Card,
   CardContent,
@@ -21,7 +20,6 @@ import { formatDisplayDate } from "@/lib/utils";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
-
 export default async function EventDetailPage({
   params,
 }: {
@@ -29,29 +27,37 @@ export default async function EventDetailPage({
 }) {
   const { eventId } = await params;
 
-  const session = await auth.api.getSession({ 
-    headers: await headers() 
+  const session = await auth.api.getSession({
+    headers: await headers(),
   });
   if (!session) {
     redirect("/login?callbackUrl=/dashboard/" + eventId);
   }
-
 
   const { data: eventData, error } = await getEventDetails(eventId);
   if (error || !eventData) {
     notFound();
   }
 
+  const isOwner = eventData.hostedBy === session.user.id;
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 flex flex-wrap items-center gap-2">
         <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
           <Link href="/dashboard" className="inline-flex items-center gap-2">
             <ArrowLeft className="size-4" />
             Back to my events
           </Link>
         </Button>
+        {isOwner && (
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/dashboard/${eventId}/edit`} className="inline-flex items-center gap-2">
+              <Pencil className="size-4" />
+              Edit event
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card className="overflow-hidden">

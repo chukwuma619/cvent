@@ -145,6 +145,8 @@ export async function getEventDetails(eventId: string) {
   try {
     const [row] = await db
       .select({
+        id: event.id,
+        hostedBy: event.hostedBy,
         title: event.title,
         date: event.date,
         time: event.time,
@@ -155,6 +157,7 @@ export async function getEventDetails(eventId: string) {
         description: event.description,
         priceCents: event.priceCents,
         currency: event.currency,
+        categoryId: event.categoryId,
         categoryName: category.name,
         hostedByName: user.name,
       })
@@ -170,6 +173,74 @@ export async function getEventDetails(eventId: string) {
       data: null,
       error:
         err instanceof Error ? err.message : "Failed to get event details.",
+    };
+  }
+}
+
+export type EventForEdit = {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  address: string;
+  imageUrl: string | null;
+  categoryId: string;
+  city: string;
+  continent: string;
+  priceCents: number;
+  currency: string;
+};
+
+export async function getEventForEdit(
+  eventId: string,
+  userId: string
+): Promise<{ data: EventForEdit | null; error: string | null }> {
+  try {
+    const [row] = await db
+      .select({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        date: event.date,
+        time: event.time,
+        address: event.address,
+        imageUrl: event.imageUrl,
+        categoryId: event.categoryId,
+        city: event.city,
+        continent: event.continent,
+        priceCents: event.priceCents,
+        currency: event.currency,
+        hostedBy: event.hostedBy,
+      })
+      .from(event)
+      .where(eq(event.id, eventId))
+      .limit(1);
+    if (!row || row.hostedBy !== userId) {
+      return { data: null, error: null };
+    }
+    return {
+      data: {
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        date: row.date,
+        time: row.time,
+        address: row.address,
+        imageUrl: row.imageUrl,
+        categoryId: row.categoryId,
+        city: row.city,
+        continent: row.continent,
+        priceCents: row.priceCents,
+        currency: row.currency,
+      },
+      error: null,
+    };
+  } catch (err) {
+    console.error("getEventForEdit error:", err);
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : "Failed to get event.",
     };
   }
 }
