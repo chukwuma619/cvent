@@ -1,11 +1,14 @@
 "use server";
 
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { event, eventOrder, eventAttendees } from "@/lib/db/schema";
+import { event, eventOrder, eventTicket, user } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import {
+  getMinShannonsForPriceCents,
+  verifyTransactionPaysRecipient,
+} from "@/lib/ckb";
 
 function generateTicketCode(): string {
   return crypto.randomUUID().replace(/-/g, "").toLowerCase().slice(0, 12);
@@ -44,11 +47,11 @@ export async function registerForEvent(eventId: string): Promise<RegisterResult>
 
   const [existingAttendee] = await db
     .select()
-    .from(eventAttendees)
+    .from(eventTicket)
     .where(
       and(
-        eq(eventAttendees.eventId, eventId),
-        eq(eventAttendees.userId, userId)
+        eq(eventTicket.eventId, eventId),
+        eq(eventTicket.userId, userId)
       )
     )
     .limit(1);
@@ -67,8 +70,8 @@ export async function registerForEvent(eventId: string): Promise<RegisterResult>
   for (let attempt = 0; attempt < 5; attempt++) {
     const [existingCode] = await db
       .select()
-      .from(eventAttendees)
-      .where(eq(eventAttendees.ticketCode, ticketCode))
+      .from(eventTicket)
+      .where(eq(eventTicket.ticketCode, ticketCode))
       .limit(1);
     if (!existingCode) break;
     ticketCode = generateTicketCode();
@@ -83,7 +86,7 @@ export async function registerForEvent(eventId: string): Promise<RegisterResult>
       status: "paid",
       txHash: null,
     });
-    await db.insert(eventAttendees).values({
+    await db.insert(eventTicket).values({
       id: attendeeId,
       eventId,
       userId,
@@ -128,13 +131,80 @@ export async function confirmPaidRegistration(
     return { success: false, error: "Event is free; use Get ticket instead." };
   }
 
+  const trimmedTxHash = txHash.trim();
+  if (!trimmedTxHash) {
+    return { success: false, error: "Transaction hash is required." };
+  }
+
+  const [existingOrderWithTx] = await db
+    .select({ id: eventOrder.id })
+    .from(eventOrder)
+    .where(eq(eventOrder.txHash, trimmedTxHash))
+    .limit(1);
+  if (existingOrderWithTx) {
+    return {
+      success: false,
+      error: "This payment has already been used.",
+    };
+  }
+
+  let minShannons: number;
+  try {
+    minShannons = await getMinShannonsForPriceCents(
+      eventRow.priceCents,
+      eventRow.currency
+    );
+  } catch (err) {
+    console.error("getMinShannonsForPriceCents error:", err);
+    return {
+      success: false,
+      error: "Could not verify event price. Try again later.",
+    };
+  }
+  if (amountCkbShannons < minShannons) {
+    return {
+      success: false,
+      error: "Payment amount is below the event price.",
+    };
+  }
+
+  const [hostUser] = await db
+    .select({ walletAddress: user.walletAddress })
+    .from(user)
+    .where(eq(user.id, eventRow.hostedBy))
+    .limit(1);
+  const hostWalletAddress = hostUser?.walletAddress?.trim() ?? null;
+  if (!hostWalletAddress) {
+    return {
+      success: false,
+      error: "Host has not set a wallet; payment cannot be verified.",
+    };
+  }
+
+  const ckbRpcUrl = process.env.CKB_RPC_URL?.trim();
+  if (ckbRpcUrl) {
+    const verified = await verifyTransactionPaysRecipient(
+      ckbRpcUrl,
+      trimmedTxHash,
+      hostWalletAddress,
+      amountCkbShannons
+    );
+    if (!verified) {
+      return {
+        success: false,
+        error:
+          "Payment could not be verified on-chain. Ensure the transaction is confirmed and sent to the host's wallet.",
+      };
+    }
+  }
+
   const [existingAttendee] = await db
     .select()
-    .from(eventAttendees)
+    .from(eventTicket)
     .where(
       and(
-        eq(eventAttendees.eventId, eventId),
-        eq(eventAttendees.userId, userId)
+        eq(eventTicket.eventId, eventId),
+        eq(eventTicket.userId, userId)
       )
     )
     .limit(1);
@@ -150,8 +220,8 @@ export async function confirmPaidRegistration(
   for (let attempt = 0; attempt < 5; attempt++) {
     const [existingCode] = await db
       .select()
-      .from(eventAttendees)
-      .where(eq(eventAttendees.ticketCode, ticketCode))
+      .from(eventTicket)
+      .where(eq(eventTicket.ticketCode, ticketCode))
       .limit(1);
     if (!existingCode) break;
     ticketCode = generateTicketCode();
@@ -164,9 +234,9 @@ export async function confirmPaidRegistration(
       userId,
       amountCkbShannons,
       status: "paid",
-      txHash: txHash.trim() || null,
+      txHash: trimmedTxHash,
     });
-    await db.insert(eventAttendees).values({
+    await db.insert(eventTicket).values({
       id: attendeeId,
       eventId,
       userId,

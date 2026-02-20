@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCcc } from "@ckb-ccc/connector-react";
@@ -11,6 +11,8 @@ import { toast } from "sonner";
 
 const SHANNONS_PER_CKB = 100_000_000;
 const CKB_PRICE_POLL_MS = 60_000;
+const CONFIRM_POLL_MS = 8_000;
+const CONFIRM_POLL_ATTEMPTS = 15;
 
 function formatPrice(priceCents: number, currency: string): string {
   const value = priceCents / 100;
@@ -36,6 +38,12 @@ export function GetTicketButton({
   const [pending, setPending] = useState(false);
   const [ckbPrice, setCkbPrice] = useState<number | null>(null);
   const [priceError, setPriceError] = useState<string | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<{
+    txHash: string;
+    amountCkbShannons: number;
+  } | null>(null);
+  const [polling, setPolling] = useState(false);
+  const pollCountRef = useRef(0);
   const { open: openWalletModal, signerInfo, client } = useCcc();
 
   const fetchCkbPrice = useCallback(async () => {
@@ -62,6 +70,47 @@ export function GetTicketButton({
     return () => clearInterval(id);
   }, [priceCents, fetchCkbPrice]);
 
+  const tryConfirm = useCallback(
+    async (txHash: string, amountCkbShannons: number) => {
+      const result = await confirmPaidRegistration(
+        eventId,
+        txHash,
+        amountCkbShannons
+      );
+      if (result.success) {
+        toast.success("Ticket confirmed!");
+        router.push("/dashboard/tickets");
+        router.refresh();
+        setPendingConfirmation(null);
+        setPolling(false);
+        return true;
+      }
+      return false;
+    },
+    [eventId, router]
+  );
+
+  useEffect(() => {
+    if (!pendingConfirmation || polling) return;
+    const { txHash, amountCkbShannons } = pendingConfirmation;
+    setPolling(true);
+    pollCountRef.current = 0;
+    const interval = setInterval(async () => {
+      pollCountRef.current += 1;
+      const done = await tryConfirm(txHash, amountCkbShannons);
+      if (done || pollCountRef.current >= CONFIRM_POLL_ATTEMPTS) {
+        clearInterval(interval);
+        setPolling(false);
+        if (!done && pollCountRef.current >= CONFIRM_POLL_ATTEMPTS) {
+          toast.info(
+            "Still confirming. You can retry below or check the explorer later."
+          );
+        }
+      }
+    }, CONFIRM_POLL_MS);
+    return () => clearInterval(interval);
+  }, [pendingConfirmation, polling, tryConfirm]);
+
   const amountCkbShannons =
     ckbPrice != null && ckbPrice > 0
       ? Math.ceil((priceCents / 100) / ckbPrice * SHANNONS_PER_CKB)
@@ -83,6 +132,35 @@ export function GetTicketButton({
   if (priceCents > 0) {
     const hasWallet = !!hostWalletAddress;
     const canPay = hasWallet && signerInfo?.signer && amountCkbShannons > 0;
+
+    if (pendingConfirmation) {
+      return (
+        <div className="space-y-3">
+          <div className="rounded-md border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Transaction submitted</p>
+            <p className="mt-1">
+              It may take 1–2 minutes to confirm on-chain. We&apos;re checking automatically—you can also click Retry below.
+            </p>
+          </div>
+          <Button
+            size="lg"
+            className="w-full"
+            disabled={polling}
+            onClick={async () => {
+              const ok = await tryConfirm(
+                pendingConfirmation.txHash,
+                pendingConfirmation.amountCkbShannons
+              );
+              if (!ok) {
+                toast.error("Still not confirmed. Wait a bit and try again.");
+              }
+            }}
+          >
+            {polling ? "Checking…" : "Retry confirmation"}
+          </Button>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-3">
@@ -141,6 +219,9 @@ export function GetTicketButton({
                 toast.success("Ticket confirmed!");
                 router.push("/dashboard/tickets");
                 router.refresh();
+              } else if (result.error?.includes("could not be verified on-chain")) {
+                setPendingConfirmation({ txHash, amountCkbShannons });
+                toast.info("Transaction sent. Waiting for confirmation…");
               } else {
                 toast.error(result.error);
               }

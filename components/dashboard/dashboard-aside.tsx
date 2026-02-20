@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Ticket,
   PlusCircle,
+  Wallet,
   Compass,
   User,
 } from "lucide-react";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/dashboard", label: "My events", icon: LayoutDashboard },
   { href: "/dashboard/tickets", label: "My tickets", icon: Ticket },
+  { href: "/dashboard/earnings", label: "Earnings", icon: Wallet },
   { href: "/dashboard/create", label: "Create event", icon: PlusCircle },
   { href: "/dashboard/account", label: "Account", icon: User },
   { href: "/discover", label: "Discover", icon: Compass },

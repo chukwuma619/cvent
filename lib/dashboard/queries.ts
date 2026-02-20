@@ -1,4 +1,4 @@
-import { asc, count, eq } from "drizzle-orm";
+import { asc, count, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   event,
@@ -137,6 +137,45 @@ export async function getEventsCreatedByUser(userId: string) {
     return {
       data: [],
       error: err instanceof Error ? err.message : "Failed to get user events.",
+    };
+  }
+}
+
+export type OrderForHost = {
+  orderId: string;
+  eventId: string;
+  eventTitle: string;
+  amountCkbShannons: number;
+  txHash: string | null;
+  orderCreatedAt: Date;
+  buyerName: string;
+};
+
+export async function getOrdersForHost(
+  hostUserId: string
+): Promise<{ data: OrderForHost[]; error: string | null }> {
+  try {
+    const rows = await db
+      .select({
+        orderId: eventOrder.id,
+        eventId: event.id,
+        eventTitle: event.title,
+        amountCkbShannons: eventOrder.amountCkbShannons,
+        txHash: eventOrder.txHash,
+        orderCreatedAt: eventOrder.createdAt,
+        buyerName: user.name,
+      })
+      .from(eventOrder)
+      .innerJoin(event, eq(eventOrder.eventId, event.id))
+      .innerJoin(user, eq(eventOrder.userId, user.id))
+      .where(eq(event.hostedBy, hostUserId))
+      .orderBy(desc(eventOrder.createdAt));
+    return { data: rows, error: null };
+  } catch (err) {
+    console.error("getOrdersForHost error:", err);
+    return {
+      data: [],
+      error: err instanceof Error ? err.message : "Failed to get orders.",
     };
   }
 }
