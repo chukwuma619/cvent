@@ -174,10 +174,8 @@ export function DashboardHeader({ userName, walletAddress = null }: DashboardHea
                 </div>
               )}
               <div className="my-2 border-t border-border" />
-              <p className="px-3 py-2 text-xs text-muted-foreground truncate">
-                {userName}
-              </p>
-              <form action="/api/auth/sign-out" method="POST">
+
+              <form action={signOut}>
                 <button
                   type="submit"
                   className="w-full rounded-md px-3 py-2.5 text-left text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
