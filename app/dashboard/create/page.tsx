@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { getCategories } from "@/lib/dashboard/queries";
 import { CreateEventForm } from "@/components/dashboard/create-event-form";
+import { getSessionFromHeaders } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 export default async function CreateEventPage() {
   const { data: categories, error } = await getCategories();
@@ -8,7 +11,13 @@ export default async function CreateEventPage() {
     return <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-6 py-4 text-sm text-destructive">{error}</div>;
   }
 
-  return (
+  const session = await getSessionFromHeaders(await headers());
+  const walletAddress = session?.walletAddress;
+  if (!walletAddress) {
+    redirect("/login?callbackUrl=/dashboard/create");
+  }
+
+    return (
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">
@@ -35,7 +44,7 @@ export default async function CreateEventPage() {
         </div>
       ) : (
         <div className="max-w-2xl">
-          <CreateEventForm categories={categories} />
+          <CreateEventForm categories={categories} walletAddress={walletAddress as string} />
         </div>
       )}
     </div>

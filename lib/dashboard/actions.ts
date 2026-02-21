@@ -15,18 +15,12 @@ export type CreateEventInput = Omit<
 
 export async function createEvent({
   data,
-  walletAddress: walletAddressParam,
+  walletAddress,
 }: {
   data: CreateEventInput;
-  walletAddress?: string;
+  walletAddress: string;
 }) {
   try {
-    const walletAddress =
-      walletAddressParam ??
-      (await getSessionFromHeaders(await headers()))?.walletAddress;
-    if (!walletAddress) {
-      return { success: false as const, error: "You must be signed in." };
-    }
 
     const [inserted] = await db
       .insert(event)
@@ -37,15 +31,12 @@ export async function createEvent({
       })
       .returning();
     if (!inserted) {
-      return { success: false as const, error: "Failed to create event." };
+      return { data: null, error: "Failed to create event." };
     }
-    return { success: true as const, eventId: inserted.id };
-  } catch (err) {
-    console.error("createEvent error:", err);
-    return {
-      success: false as const,
-      error: err instanceof Error ? err.message : "Failed to create event.",
-    };
+    return { data: inserted, error: null };
+  } catch (error) {
+    console.error("createEvent error:", error);
+    return { data: null, error: error instanceof Error ? error.message : "Failed to create event." };
   }
 }
 

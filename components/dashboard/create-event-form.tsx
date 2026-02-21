@@ -100,6 +100,7 @@ type CreateEventFormProps = {
   mode?: "create" | "edit";
   eventId?: string;
   initialData?: EventFormInitialData;
+  walletAddress: string;
 };
 
 const UPLOAD_HANDLER = "/api/upload";
@@ -109,6 +110,7 @@ export function CreateEventForm({
   mode = "create",
   eventId,
   initialData,
+  walletAddress,
 }: CreateEventFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -205,10 +207,10 @@ export function CreateEventForm({
       return;
     }
 
-    const result = await createEvent({ data: input });
+    const result = await createEvent({ data: input, walletAddress });
     setLoading(false);
-    if (result.success) {
-      router.push(`/dashboard/${result.eventId}`);
+    if (result.data) {
+      router.push(`/dashboard/${result.data.id}`);
       router.refresh();
       return;
     }
