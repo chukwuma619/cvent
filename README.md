@@ -18,7 +18,7 @@ Event ticketing and proof of attendance on [CKB](https://nervos.org/) (Nervos). 
 - Set price in CKB; receive payouts to your wallet
 - Check in attendees via ticket code or QR scan
 - View attendee list and earnings in the dashboard
-- Optional on-chain payment verification (cron)
+- Optional on-chain payment verification (manual or cron when on Pro)
 
 ## Tech stack
 
@@ -28,7 +28,7 @@ Event ticketing and proof of attendance on [CKB](https://nervos.org/) (Nervos). 
 - **Payments:** CKB (Nervos) via [@ckb-ccc](https://github.com/ckb-js/ckb-ccc) (wallet connect, RPC verification)
 - **Storage:** [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) for event images
 - **UI:** [Tailwind CSS](https://tailwindcss.com/) 4, [shadcn/ui](https://ui.shadcn.com/), [Lucide](https://lucide.dev/) icons
-- **Deploy:** Vercel (with cron for payment verification)
+- **Deploy:** Vercel (payment verification via manual trigger or cron on Pro)
 
 ## Project structure
 
@@ -129,17 +129,30 @@ Create a `.env` or `.env.local` in the project root.
 | `/api/upload` | POST | Upload event image (Vercel Blob) |
 | `/api/credentials/attendance` | GET | Signed proof-of-attendance JWT (query: `eventId`; requires session) |
 | `/api/well-known/attendance-issuer` | GET | Issuer id + public key for credential verification (rewritten from `/.well-known/attendance-issuer`) |
-| `/api/cron/verify-payments` | GET | Verify pending CKB payments and issue tickets (secured by `CRON_SECRET`; used by Vercel Cron) |
+| `/api/cron/verify-payments` | GET | Verify pending CKB payments and issue tickets (secured by `CRON_SECRET`; call manually or via cron) |
 
-## Payment verification (cron)
+## Payment verification
 
-Pending paid orders are verified on-chain by a cron job. On Vercel, `vercel.json` defines:
+Pending paid orders are verified on-chain. **Vercel Hobby** allows only one cron run per day, so the built-in cron is disabled by default.
+
+**For test users and Hobby deployments:**
+
+1. **Dashboard button** — In **Dashboard → Earnings**, use **Verify pending payments** to run verification on demand. Use this after someone has paid for a ticket so their order is confirmed and the ticket is issued.
+2. **Manual API call** — From your machine or a script:
+   ```bash
+   curl -H "Authorization: Bearer YOUR_CRON_SECRET" "https://your-app.vercel.app/api/cron/verify-payments"
+   ```
+3. **External cron (optional)** — Use a free scheduler (e.g. [cron-job.org](https://cron-job.org)) to call the URL above once per day.
+
+**When you upgrade to Vercel Pro**, you can re-enable the cron in `vercel.json`:
 
 ```json
-{ "crons": [{ "path": "/api/cron/verify-payments", "schedule": "*/2 * * * *" }] }
+{
+  "crons": [{ "path": "/api/cron/verify-payments", "schedule": "*/5 * * * *" }]
+}
 ```
 
-The job calls `GET /api/cron/verify-payments` with `Authorization: Bearer <CRON_SECRET>`. Set `CRON_SECRET` in the project environment and (optionally) `CKB_RPC_URL` for the CKB node used to confirm transactions.
+Set `CRON_SECRET` in the project environment and (optionally) `CKB_RPC_URL` for the CKB node used to confirm transactions.
 
 ## Proof-of-attendance credentials
 
@@ -149,7 +162,7 @@ After check-in, attendees can request a signed JWT from `GET /api/credentials/at
 
 1. Push the repo and import the project in [Vercel](https://vercel.com).
 2. Add all required (and desired) environment variables in the project settings.
-3. Deploy. The cron for payment verification will run on the configured schedule.
+3. Deploy. Use **Dashboard → Earnings → Verify pending payments** to run payment verification until you enable a cron (e.g. on Vercel Pro).
 
 For more on Next.js deployment, see [Deploying](https://nextjs.org/docs/app/building-your-application/deploying).
 

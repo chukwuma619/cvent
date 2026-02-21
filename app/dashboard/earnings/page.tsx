@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { redirect } from "next/navigation";
+import { VerifyPaymentsButton } from "./verify-payments-button";
 
 const SHANNONS_PER_CKB = 100_000_000;
 
@@ -47,6 +48,9 @@ export default async function EarningsPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Orders for your events. Paid orders are verified on-chain.
         </p>
+        <div className="mt-3">
+          <VerifyPaymentsButton />
+        </div>
       </div>
 
       {orders.length === 0 ? (

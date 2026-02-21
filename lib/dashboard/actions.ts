@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { event, eventTicket, type Event } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { verifyAllPendingPaymentOrders } from "@/lib/discover/actions";
 
 export type CreateEventInput = Omit<
   Event,
@@ -124,6 +125,29 @@ export async function checkInAttendee(
     return {
       success: false,
       error: err instanceof Error ? err.message : "Check-in failed.",
+    };
+  }
+}
+
+export type RunPaymentVerificationResult =
+  | { ok: true; checked: number; verified: number }
+  | { ok: false; error: string };
+
+/** Run on-chain verification for pending paid orders. Use when cron is disabled (e.g. Vercel Hobby). */
+export async function runPaymentVerification(): Promise<RunPaymentVerificationResult> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user?.id) {
+    return { ok: false, error: "You must be signed in." };
+  }
+  try {
+    const result = await verifyAllPendingPaymentOrders();
+    revalidatePath("/dashboard/earnings");
+    return { ok: true, checked: result.checked, verified: result.verified };
+  } catch (err) {
+    console.error("runPaymentVerification error:", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Verification failed.",
     };
   }
 }
