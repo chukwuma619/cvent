@@ -68,6 +68,7 @@ export default async function EditEventPage({
         <CreateEventForm
           categories={categories}
           mode="edit"
+          walletAddress={session.walletAddress as string}
           eventId={eventId}
           initialData={initialData}
         />
