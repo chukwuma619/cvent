@@ -189,18 +189,13 @@ export default function Home() {
               >
                 Discover
               </Link>
-              <Link
-                href="/login"
-                className="underline-offset-4 hover:text-foreground hover:underline"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/login"
-                className="underline-offset-4 hover:text-foreground hover:underline"
-              >
-                Sign up
-              </Link>
+                <Link
+                  href="https://github.com/chukwuma619/cvent"
+                  className="underline-offset-4 hover:text-foreground hover:underline"
+                >
+                  GitHub
+                </Link>
+
             </div>
           </div>
         </footer>
