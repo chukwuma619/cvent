@@ -1,5 +1,5 @@
-import { LoginForm } from "@/components/auth/login-form";
+import { WalletLoginForm } from "@/components/auth/wallet-login-form";
 
 export default function LoginPage() {
-  return <LoginForm />;
+  return <WalletLoginForm />;
 }

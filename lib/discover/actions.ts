@@ -2,9 +2,9 @@
 
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import { event, eventOrder, eventTicket, user } from "@/lib/db/schema";
+import { event, eventOrder, eventTicket } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { getSessionFromHeaders } from "@/lib/auth";
 import {
   getMinShannonsForPriceCents,
   verifyTransactionPaysRecipient,
@@ -20,9 +20,9 @@ export type RegisterResult =
   | { success: false; error: string };
 
 export async function registerForEvent(eventId: string): Promise<RegisterResult> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
-  if (!userId) {
+  const session = await getSessionFromHeaders(await headers());
+  const walletAddress = session?.walletAddress;
+  if (!walletAddress) {
     return {
       success: false,
       error: "You must be signed in to get a ticket.",
@@ -52,7 +52,7 @@ export async function registerForEvent(eventId: string): Promise<RegisterResult>
     .where(
       and(
         eq(eventTicket.eventId, eventId),
-        eq(eventTicket.userId, userId)
+        eq(eventTicket.walletAddress, walletAddress)
       )
     )
     .limit(1);
@@ -82,7 +82,7 @@ export async function registerForEvent(eventId: string): Promise<RegisterResult>
     await db.insert(eventOrder).values({
       id: orderId,
       eventId,
-      userId,
+      walletAddress,
       amountCkbShannons: 0,
       status: "paid",
       txHash: null,
@@ -90,7 +90,7 @@ export async function registerForEvent(eventId: string): Promise<RegisterResult>
     await db.insert(eventTicket).values({
       id: attendeeId,
       eventId,
-      userId,
+      walletAddress,
       orderId,
       eventOrderId: orderId,
       ticketCode,
@@ -112,9 +112,9 @@ export async function confirmPaidRegistration(
   txHash: string,
   amountCkbShannons: number
 ): Promise<RegisterResult> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
-  if (!userId) {
+  const session = await getSessionFromHeaders(await headers());
+  const walletAddress = session?.walletAddress;
+  if (!walletAddress) {
     return { success: false, error: "You must be signed in." };
   }
 
@@ -130,6 +130,14 @@ export async function confirmPaidRegistration(
 
   if (eventRow.priceCents <= 0) {
     return { success: false, error: "Event is free; use Get ticket instead." };
+  }
+
+  const hostWalletAddress = eventRow.hostedByWallet?.trim() ?? null;
+  if (!hostWalletAddress) {
+    return {
+      success: false,
+      error: "Host wallet not set; payment cannot be verified.",
+    };
   }
 
   const trimmedTxHash = txHash.trim();
@@ -160,22 +168,8 @@ export async function confirmPaidRegistration(
     };
   }
 
-  const [hostUser] = await db
-    .select({ walletAddress: user.walletAddress })
-    .from(user)
-    .where(eq(user.id, eventRow.hostedBy))
-    .limit(1);
-  const hostWalletAddress = hostUser?.walletAddress?.trim() ?? null;
-  if (!hostWalletAddress) {
-    return {
-      success: false,
-      error: "Host has not set a wallet; payment cannot be verified.",
-    };
-  }
-
   const ckbRpcUrl = process.env.CKB_RPC_URL?.trim();
 
-  // --- Existing order with this tx_hash? ---
   const [existingOrder] = await db
     .select()
     .from(eventOrder)
@@ -183,7 +177,7 @@ export async function confirmPaidRegistration(
     .limit(1);
 
   if (existingOrder) {
-    if (existingOrder.userId !== userId) {
+    if (existingOrder.walletAddress !== walletAddress) {
       return {
         success: false,
         error: "This payment has already been used.",
@@ -225,7 +219,7 @@ export async function confirmPaidRegistration(
         await db.insert(eventTicket).values({
           id: attendeeId,
           eventId,
-          userId,
+          walletAddress,
           orderId: existingOrder.id,
           eventOrderId: existingOrder.id,
           ticketCode,
@@ -236,14 +230,13 @@ export async function confirmPaidRegistration(
     }
   }
 
-  // --- No order for this tx: user might already have a ticket (e.g. from a previous payment) ---
   const [existingAttendee] = await db
     .select({ ticketCode: eventTicket.ticketCode })
     .from(eventTicket)
     .where(
       and(
         eq(eventTicket.eventId, eventId),
-        eq(eventTicket.userId, userId)
+        eq(eventTicket.walletAddress, walletAddress)
       )
     )
     .limit(1);
@@ -251,13 +244,12 @@ export async function confirmPaidRegistration(
     return { success: true, ticketCode: existingAttendee.ticketCode };
   }
 
-  // --- Insert new order (pending_verification) so we never lose the payment record ---
   const orderId = crypto.randomUUID();
   try {
     await db.insert(eventOrder).values({
       id: orderId,
       eventId,
-      userId,
+      walletAddress,
       amountCkbShannons,
       status: "pending_verification",
       txHash: trimmedTxHash,
@@ -271,7 +263,6 @@ export async function confirmPaidRegistration(
     };
   }
 
-  // --- Try to verify on-chain (tx might already be committed) ---
   const verified = !!ckbRpcUrl && (await verifyTransactionPaysRecipient(
     ckbRpcUrl,
     trimmedTxHash,
@@ -298,7 +289,7 @@ export async function confirmPaidRegistration(
     await db.insert(eventTicket).values({
       id: attendeeId,
       eventId,
-      userId,
+      walletAddress,
       orderId,
       eventOrderId: orderId,
       ticketCode,
@@ -309,14 +300,9 @@ export async function confirmPaidRegistration(
   return { success: true, pendingVerification: true };
 }
 
-/**
- * Run on-chain verification for any pending_verification order for this user+event.
- * Call this when loading the event page so that returning visitors get their order
- * upgraded to paid and ticket created without relying on client polling.
- */
 export async function verifyPendingOrderForUserEvent(
   eventId: string,
-  userId: string
+  walletAddress: string
 ): Promise<void> {
   const ckbRpcUrl = process.env.CKB_RPC_URL?.trim();
   if (!ckbRpcUrl) return;
@@ -327,7 +313,7 @@ export async function verifyPendingOrderForUserEvent(
     .where(
       and(
         eq(eventOrder.eventId, eventId),
-        eq(eventOrder.userId, userId),
+        eq(eventOrder.walletAddress, walletAddress),
         eq(eventOrder.status, "pending_verification")
       )
     )
@@ -341,12 +327,7 @@ export async function verifyPendingOrderForUserEvent(
     .limit(1);
   if (!eventRow || eventRow.priceCents <= 0) return;
 
-  const [hostUser] = await db
-    .select({ walletAddress: user.walletAddress })
-    .from(user)
-    .where(eq(user.id, eventRow.hostedBy))
-    .limit(1);
-  const hostWalletAddress = hostUser?.walletAddress?.trim() ?? null;
+  const hostWalletAddress = eventRow.hostedByWallet?.trim() ?? null;
   if (!hostWalletAddress) return;
 
   const verified = await verifyTransactionPaysRecipient(
@@ -375,13 +356,12 @@ export async function verifyPendingOrderForUserEvent(
   await db.insert(eventTicket).values({
     id: attendeeId,
     eventId,
-    userId,
+    walletAddress,
     orderId: pendingOrder.id,
     eventOrderId: pendingOrder.id,
     ticketCode,
   });
 }
-
 
 export async function verifyAllPendingPaymentOrders(): Promise<{
   checked: number;
@@ -406,12 +386,7 @@ export async function verifyAllPendingPaymentOrders(): Promise<{
       .limit(1);
     if (!eventRow || eventRow.priceCents <= 0) continue;
 
-    const [hostUser] = await db
-      .select({ walletAddress: user.walletAddress })
-      .from(user)
-      .where(eq(user.id, eventRow.hostedBy))
-      .limit(1);
-    const hostWalletAddress = hostUser?.walletAddress?.trim() ?? null;
+    const hostWalletAddress = eventRow.hostedByWallet?.trim() ?? null;
     if (!hostWalletAddress) continue;
 
     const txVerified = await verifyTransactionPaysRecipient(
@@ -440,7 +415,7 @@ export async function verifyAllPendingPaymentOrders(): Promise<{
     await db.insert(eventTicket).values({
       id: attendeeId,
       eventId: order.eventId,
-      userId: order.userId,
+      walletAddress: order.walletAddress,
       orderId: order.id,
       eventOrderId: order.id,
       ticketCode,

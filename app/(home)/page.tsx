@@ -30,7 +30,7 @@ export default function Home() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <Link href="/signup">Create account</Link>
+              <Link href="/login">Sign in with wallet</Link>
             </Button>
           </div>
         </section>
@@ -196,7 +196,7 @@ export default function Home() {
                 Log in
               </Link>
               <Link
-                href="/signup"
+                href="/login"
                 className="underline-offset-4 hover:text-foreground hover:underline"
               >
                 Sign up

@@ -1,14 +1,14 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getSessionFromHeaders } from "@/lib/auth";
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) {
+  const session = await getSessionFromHeaders(await headers());
+  if (!session?.walletAddress) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

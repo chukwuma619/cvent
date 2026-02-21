@@ -10,16 +10,18 @@ import {
 } from "@/lib/dashboard/queries";
 import { verifyPendingOrderForUserEvent } from "@/lib/discover/actions";
 import { GetTicketButton } from "./get-ticket-button";
-import { auth } from "@/lib/auth";
+import { getSessionFromHeaders } from "@/lib/auth";
 import { isEventPast, formatDisplayDate } from "@/lib/utils";
 
-
-
+function truncateAddress(addr: string): string {
+  if (addr.length <= 14) return addr;
+  return `${addr.slice(0, 7)}...${addr.slice(-4)}`;
+}
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSessionFromHeaders(await headers());
 
   const { data: event, error: eventError } = await getEvent(id);
   if (eventError || !event) {
@@ -37,11 +39,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   let hasTicket = false;
   let pendingPayment: { txHash: string; amountCkbShannons: number } | undefined;
-  if (session) {
-    await verifyPendingOrderForUserEvent(id, session.user.id);
+  if (session?.walletAddress) {
+    await verifyPendingOrderForUserEvent(id, session.walletAddress);
     const [ticketRes, pendingRes] = await Promise.all([
-      getUserHasTicketForEvent(session.user.id, id),
-      getUserPendingPaymentForEvent(session.user.id, id),
+      getUserHasTicketForEvent(session.walletAddress, id),
+      getUserPendingPaymentForEvent(session.walletAddress, id),
     ]);
     hasTicket = ticketRes.data ?? false;
     pendingPayment = pendingRes.data ?? undefined;
@@ -90,7 +92,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-2">
             <User className="size-4 shrink-0" />
-            Hosted by {event.hostedByName ?? "Unknown"}
+            Hosted by {event.hostedByName ? truncateAddress(event.hostedByName) : "Unknown"}
           </span>
           <span className="flex items-center gap-2">
             <Users className="size-4 shrink-0" />
@@ -125,7 +127,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           eventId={event.id}
           priceCents={event.priceCents}
           currency={event.currency}
-          isLoggedIn={!!session}
+          isLoggedIn={!!session?.walletAddress}
           hostWalletAddress={event.hostedByWalletAddress}
           hasTicket={hasTicket}
           pendingPayment={pendingPayment}

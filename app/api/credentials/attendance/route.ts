@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSessionFromHeaders } from "@/lib/auth";
 import {
   buildAttendancePayload,
   createAttendanceCredential,
+  getIssuerId,
 } from "@/lib/attendance-credential";
 import { headers } from "next/headers";
 import { getAttendedTicketForUser } from "@/lib/dashboard/queries";
@@ -21,13 +22,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "eventId is required" }, { status: 400 });
   }
 
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) {
+  const session = await getSessionFromHeaders(await headers());
+  if (!session?.walletAddress) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { data: attended, error } = await getAttendedTicketForUser(
-    session.user.id,
+    session.walletAddress,
     eventId.trim(),
   );
   if (error) {
@@ -42,14 +43,20 @@ export async function GET(request: NextRequest) {
       { status: 404 },
     );
   }
-const issuerId = process.env.BETTER_AUTH_URL!;
+  const issuerId = getIssuerId();
+  if (!issuerId) {
+    return NextResponse.json(
+      { error: "Issuer not configured" },
+      { status: 503 },
+    );
+  }
   const payload = buildAttendancePayload({
     subjectWallet: attended.userWalletAddress,
     subjectUserId: attended.userId,
     eventId: attended.eventId,
     eventTitle: attended.eventTitle,
     checkedInAt: attended.checkedInAt,
-    issuerId: issuerId,
+    issuerId,
   });
 
   const credential = createAttendanceCredential(payload, issuerId);

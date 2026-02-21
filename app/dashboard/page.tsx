@@ -1,10 +1,9 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Calendar, MapPin, Clock, } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getSessionFromHeaders } from "@/lib/auth";
 import {
   getEventsCreatedByUser,
-
 } from "@/lib/dashboard/queries";
 import {
   Card,
@@ -17,14 +16,14 @@ import { formatDisplayDate } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
 export default async function DashboardHomePage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSessionFromHeaders(await headers());
 
-  if (!session) {
+  if (!session?.walletAddress) {
     redirect("/login");
   }
 
   const { data: eventsData, error: eventsError } =
-    await getEventsCreatedByUser(session.user.id);
+    await getEventsCreatedByUser(session.walletAddress);
 
 
   if (eventsError) {

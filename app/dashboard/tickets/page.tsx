@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Calendar, MapPin, Clock, Ticket } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getSessionFromHeaders } from "@/lib/auth";
 import { getTicketsByUserId } from "@/lib/dashboard/queries";
 import {
   Card,
@@ -16,13 +16,13 @@ import { GetProofButton } from "@/components/dashboard/get-proof-button";
 
 
 export default async function MyTicketsPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
-  if (!userId) {
+  const session = await getSessionFromHeaders(await headers());
+  const walletAddress = session?.walletAddress;
+  if (!walletAddress) {
     return null;
   }
 
-  const { data: tickets, error } = await getTicketsByUserId(userId);
+  const { data: tickets, error } = await getTicketsByUserId(walletAddress);
 
   if (error) {
     return <div>{error}</div>;

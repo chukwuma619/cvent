@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDisplayDate } from "@/lib/utils";
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getSessionFromHeaders } from "@/lib/auth";
 import { CheckInSection } from "@/components/dashboard/check-in-section";
 
 export default async function EventDetailPage({
@@ -28,10 +28,8 @@ export default async function EventDetailPage({
 }) {
   const { eventId } = await params;
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  if (!session) {
+  const session = await getSessionFromHeaders(await headers());
+  if (!session?.walletAddress) {
     redirect("/login?callbackUrl=/dashboard/" + eventId);
   }
 
@@ -40,7 +38,7 @@ export default async function EventDetailPage({
     notFound();
   }
 
-  const isOwner = eventData.hostedBy === session.user.id;
+  const isOwner = eventData.hostedByWallet === session.walletAddress;
   const { data: attendees = [] } = isOwner
     ? await getAttendeesByEventId(eventId)
     : { data: [] };

@@ -5,26 +5,26 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { event, eventTicket, type Event } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { getSessionFromHeaders } from "@/lib/auth";
 import { verifyAllPendingPaymentOrders } from "@/lib/discover/actions";
 
 export type CreateEventInput = Omit<
   Event,
-  "id" | "hostedBy" | "createdAt" | "updatedAt"
+  "id" | "hostedByWallet" | "createdAt" | "updatedAt"
 >;
 
 export async function createEvent({
   data,
-  userId: userIdParam,
+  walletAddress: walletAddressParam,
 }: {
   data: CreateEventInput;
-  userId?: string;
+  walletAddress?: string;
 }) {
   try {
-    const userId =
-      userIdParam ??
-      (await auth.api.getSession({ headers: await headers() }))?.user?.id;
-    if (!userId) {
+    const walletAddress =
+      walletAddressParam ??
+      (await getSessionFromHeaders(await headers()))?.walletAddress;
+    if (!walletAddress) {
       return { success: false as const, error: "You must be signed in." };
     }
 
@@ -33,7 +33,7 @@ export async function createEvent({
       .values({
         ...data,
         id: crypto.randomUUID(),
-        hostedBy: userId,
+        hostedByWallet: walletAddress,
       })
       .returning();
     if (!inserted) {
@@ -76,17 +76,17 @@ export async function checkInAttendee(
   ticketCode: string
 ): Promise<CheckInResult> {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user?.id) {
+    const session = await getSessionFromHeaders(await headers());
+    if (!session?.walletAddress) {
       return { success: false, error: "You must be signed in." };
     }
 
     const [eventRow] = await db
-      .select({ hostedBy: event.hostedBy })
+      .select({ hostedByWallet: event.hostedByWallet })
       .from(event)
       .where(eq(event.id, eventId))
       .limit(1);
-    if (!eventRow || eventRow.hostedBy !== session.user.id) {
+    if (!eventRow || eventRow.hostedByWallet !== session.walletAddress) {
       return { success: false, error: "You can only check in attendees for your own events." };
     }
 
@@ -135,8 +135,8 @@ export type RunPaymentVerificationResult =
 
 /** Run on-chain verification for pending paid orders. Use when cron is disabled (e.g. Vercel Hobby). */
 export async function runPaymentVerification(): Promise<RunPaymentVerificationResult> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user?.id) {
+  const session = await getSessionFromHeaders(await headers());
+  if (!session?.walletAddress) {
     return { ok: false, error: "You must be signed in." };
   }
   try {

@@ -3,11 +3,15 @@ import { db } from "@/lib/db";
 import {
   event,
   category,
-  user,
   eventOrder,
   eventTicket,
   type Event,
 } from "@/lib/db/schema";
+
+function truncateAddress(addr: string): string {
+  if (addr.length <= 14) return addr;
+  return `${addr.slice(0, 7)}...${addr.slice(-4)}`;
+}
 
 export type CategoryOption = { id: string; name: string };
 
@@ -98,15 +102,14 @@ export async function getEvent(eventId: string) {
           address: event.address,
           imageUrl: event.imageUrl,
           categoryName: category.name,
-          hostedByName: user.name,
-          hostedByWalletAddress: user.walletAddress,
+          hostedByName: event.hostedByWallet,
+          hostedByWalletAddress: event.hostedByWallet,
         }
       )
       .from(event)
       .innerJoin(category, eq(event.categoryId, category.id))
-      .innerJoin(user, eq(event.hostedBy, user.id))
       .where(eq(event.id, eventId));
-    return { data:eventData[0], error: null };
+    return { data: eventData[0], error: null };
   } catch (err) {
     console.error("getEvent error:", err);
     return {
@@ -116,7 +119,7 @@ export async function getEvent(eventId: string) {
   }
 }
 
-export async function getEventsCreatedByUser(userId: string) {
+export async function getEventsCreatedByUser(walletAddress: string) {
   try {
     const eventData = await db
       .select({
@@ -130,7 +133,7 @@ export async function getEventsCreatedByUser(userId: string) {
       })
       .from(event)
       .innerJoin(category, eq(event.categoryId, category.id))
-      .where(eq(event.hostedBy, userId));
+      .where(eq(event.hostedByWallet, walletAddress));
     return { data: eventData, error: null };
   } catch (err) {
     console.error("getEventsCreatedByUser error:", err);
@@ -152,7 +155,7 @@ export type OrderForHost = {
 };
 
 export async function getOrdersForHost(
-  hostUserId: string
+  hostWalletAddress: string
 ): Promise<{ data: OrderForHost[]; error: string | null }> {
   try {
     const rows = await db
@@ -163,14 +166,19 @@ export async function getOrdersForHost(
         amountCkbShannons: eventOrder.amountCkbShannons,
         txHash: eventOrder.txHash,
         orderCreatedAt: eventOrder.createdAt,
-        buyerName: user.name,
+        buyerName: eventOrder.walletAddress,
       })
       .from(eventOrder)
       .innerJoin(event, eq(eventOrder.eventId, event.id))
-      .innerJoin(user, eq(eventOrder.userId, user.id))
-      .where(eq(event.hostedBy, hostUserId))
+      .where(eq(event.hostedByWallet, hostWalletAddress))
       .orderBy(desc(eventOrder.createdAt));
-    return { data: rows, error: null };
+    return {
+      data: rows.map((r) => ({
+        ...r,
+        buyerName: truncateAddress(r.buyerName),
+      })),
+      error: null,
+    };
   } catch (err) {
     console.error("getOrdersForHost error:", err);
     return {
@@ -185,7 +193,7 @@ export async function getEventDetails(eventId: string) {
     const [row] = await db
       .select({
         id: event.id,
-        hostedBy: event.hostedBy,
+        hostedByWallet: event.hostedByWallet,
         title: event.title,
         date: event.date,
         time: event.time,
@@ -198,14 +206,20 @@ export async function getEventDetails(eventId: string) {
         currency: event.currency,
         categoryId: event.categoryId,
         categoryName: category.name,
-        hostedByName: user.name,
+        hostedByName: event.hostedByWallet,
       })
       .from(event)
       .innerJoin(category, eq(event.categoryId, category.id))
-      .innerJoin(user, eq(event.hostedBy, user.id))
       .where(eq(event.id, eventId))
       .limit(1);
-    return { data: row, error: null };
+    if (!row) return { data: null, error: null };
+    return {
+      data: {
+        ...row,
+        hostedByName: truncateAddress(row.hostedByName),
+      },
+      error: null,
+    };
   } catch (err) {
     console.error("getEventDetails error:", err);
     return {
@@ -233,7 +247,7 @@ export type EventForEdit = {
 
 export async function getEventForEdit(
   eventId: string,
-  userId: string
+  walletAddress: string
 ): Promise<{ data: EventForEdit | null; error: string | null }> {
   try {
     const [row] = await db
@@ -250,12 +264,12 @@ export async function getEventForEdit(
         continent: event.continent,
         priceCents: event.priceCents,
         currency: event.currency,
-        hostedBy: event.hostedBy,
+        hostedByWallet: event.hostedByWallet,
       })
       .from(event)
       .where(eq(event.id, eventId))
       .limit(1);
-    if (!row || row.hostedBy !== userId) {
+    if (!row || row.hostedByWallet !== walletAddress) {
       return { data: null, error: null };
     }
     return {
@@ -279,7 +293,7 @@ export async function getEventForEdit(
     console.error("getEventForEdit error:", err);
     return {
       data: null,
-      error: err instanceof Error ? err.message : "Failed to get event.",
+      error: err instanceof Error ? err.message : "Failed to get event for edit.",
     };
   }
 }
@@ -316,16 +330,23 @@ export async function getAttendeesByEventId(
     const rows = await db
       .select({
         id: eventTicket.id,
-        userName: user.name,
-        userEmail: user.email,
+        walletAddress: eventTicket.walletAddress,
         ticketCode: eventTicket.ticketCode,
         checkedInAt: eventTicket.checkedInAt,
       })
       .from(eventTicket)
-      .innerJoin(user, eq(eventTicket.userId, user.id))
       .where(eq(eventTicket.eventId, eventId))
       .orderBy(asc(eventTicket.createdAt));
-    return { data: rows, error: null };
+    return {
+      data: rows.map((r) => ({
+        id: r.id,
+        userName: truncateAddress(r.walletAddress),
+        userEmail: r.walletAddress,
+        ticketCode: r.ticketCode,
+        checkedInAt: r.checkedInAt,
+      })),
+      error: null,
+    };
   } catch (err) {
     console.error("getAttendeesByEventId error:", err);
     return {
@@ -343,7 +364,7 @@ export type TicketWithEvent = {
 };
 
 export async function getTicketsByUserId(
-  userId: string
+  walletAddress: string
 ): Promise<{ data: TicketWithEvent[], error: string | null }> {
   try {
     const rows = await db
@@ -357,7 +378,7 @@ export async function getTicketsByUserId(
       .from(eventTicket)
       .innerJoin(event, eq(eventTicket.eventId, event.id))
         .innerJoin(eventOrder, eq(eventTicket.eventOrderId, eventOrder.id))
-      .where(eq(eventTicket.userId, userId));
+      .where(eq(eventTicket.walletAddress, walletAddress));
     return { data: rows, error: null };
   } catch (err) {
     console.error("getTicketsByUserId error:", err);
@@ -374,7 +395,7 @@ export type AttendedTicketForCredential = {
 };
 
 export async function getUserHasTicketForEvent(
-  userId: string,
+  walletAddress: string,
   eventId: string
 ): Promise<{ data: boolean; error: string | null }> {
   try {
@@ -383,7 +404,7 @@ export async function getUserHasTicketForEvent(
       .from(eventTicket)
       .where(
         and(
-          eq(eventTicket.userId, userId),
+          eq(eventTicket.walletAddress, walletAddress),
           eq(eventTicket.eventId, eventId)
         )
       )
@@ -400,7 +421,7 @@ export async function getUserHasTicketForEvent(
 
 /** If the user has a paid-event order still pending on-chain verification, return it so the UI can resume polling. */
 export async function getUserPendingPaymentForEvent(
-  userId: string,
+  walletAddress: string,
   eventId: string
 ): Promise<{
   data: { txHash: string; amountCkbShannons: number } | null;
@@ -415,7 +436,7 @@ export async function getUserPendingPaymentForEvent(
       .from(eventOrder)
       .where(
         and(
-          eq(eventOrder.userId, userId),
+          eq(eventOrder.walletAddress, walletAddress),
           eq(eventOrder.eventId, eventId),
           eq(eventOrder.status, "pending_verification")
         )
@@ -439,7 +460,7 @@ export async function getUserPendingPaymentForEvent(
 }
 
 export async function getAttendedTicketForUser(
-  userId: string,
+  walletAddress: string,
   eventId: string
 ): Promise<{ data: AttendedTicketForCredential | null; error: string | null }> {
   try {
@@ -448,17 +469,16 @@ export async function getAttendedTicketForUser(
         eventId: event.id,
         eventTitle: event.title,
         checkedInAt: eventTicket.checkedInAt,
-        userWalletAddress: user.walletAddress,
-        userId: user.id,
+        walletAddress: eventTicket.walletAddress,
       })
       .from(eventTicket)
       .innerJoin(event, eq(eventTicket.eventId, event.id))
-      .innerJoin(user, eq(eventTicket.userId, user.id))
       .where(
         and(
-          eq(eventTicket.userId, userId),
+          eq(eventTicket.walletAddress, walletAddress),
           eq(eventTicket.eventId, eventId)
-      ))
+        )
+      )
       .limit(1);
     const row = rows[0];
     if (!row || !row.checkedInAt) {
@@ -469,8 +489,8 @@ export async function getAttendedTicketForUser(
         eventId: row.eventId,
         eventTitle: row.eventTitle,
         checkedInAt: row.checkedInAt,
-        userWalletAddress: row.userWalletAddress,
-        userId: row.userId,
+        userWalletAddress: row.walletAddress,
+        userId: row.walletAddress,
       },
       error: null,
     };
@@ -482,4 +502,3 @@ export async function getAttendedTicketForUser(
     };
   }
 }
-

@@ -24,7 +24,7 @@ Event ticketing and proof of attendance on [CKB](https://nervos.org/) (Nervos). 
 
 - **Framework:** [Next.js](https://nextjs.org) 16 (App Router), React 19
 - **Database:** [Neon](https://neon.tech) (PostgreSQL) with [Drizzle ORM](https://orm.drizzle.team/)
-- **Auth:** [Better Auth](https://www.better-auth.com/) (email/password + Google OAuth)
+- **Auth:** Wallet-only (CKB wallet sign-in via [@ckb-ccc](https://github.com/ckb-js/ckb-ccc), JWT session)
 - **Payments:** CKB (Nervos) via [@ckb-ccc](https://github.com/ckb-js/ckb-ccc) (wallet connect, RPC verification)
 - **Storage:** [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) for event images
 - **UI:** [Tailwind CSS](https://tailwindcss.com/) 4, [shadcn/ui](https://ui.shadcn.com/), [Lucide](https://lucide.dev/) icons
@@ -39,8 +39,8 @@ app/
   dashboard/           # Protected: events, tickets, account, earnings, create/edit event
   api/                 # Auth, CKB price, upload, cron verify-payments, credentials, well-known
 lib/
-  auth.ts              # Better Auth server config
-  auth-client.ts       # Client auth helpers
+  auth.ts              # Wallet-signed session (getSession, setSessionCookie)
+  auth-client.ts       # useSession hook
   db/                  # Drizzle schema + Neon client
   discover/actions.ts   # Event discovery, registration, CKB payment flow
   dashboard/           # Dashboard queries and actions
@@ -56,7 +56,7 @@ drizzle/               # Migrations (generated)
 - Node.js 20+
 - pnpm (or npm/yarn/bun)
 - Neon (or any PostgreSQL) database
-- Optional: Google OAuth app, CKB RPC (e.g. [ckb.taiko.xyz](https://ckb.taiko.xyz)), Vercel Blob
+- Optional: CKB RPC (e.g. [ckb.taiko.xyz](https://ckb.taiko.xyz)), Vercel Blob
 
 ## Environment variables
 
@@ -65,10 +65,8 @@ Create a `.env` or `.env.local` in the project root.
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DATABASE_URL` | Yes | Neon/PostgreSQL connection string |
-| `BETTER_AUTH_URL` | Yes | App base URL (e.g. `https://yourapp.com` or `http://localhost:3000`) |
-| `GOOGLE_CLIENT_ID` | Yes* | Google OAuth client ID (*if using Google sign-in) |
-| `GOOGLE_CLIENT_SECRET` | Yes* | Google OAuth client secret |
-| `CKB_RPC_URL` | No | CKB JSON-RPC URL for on-chain payment verification (e.g. `https://ckb.taiko.xyz`) |
+| `NEXT_PUBLIC_APP_URL` | No | App base URL for credentials issuer (e.g. `https://yourapp.com` or `http://localhost:3000`) |
+| `CKB_RPC_URL` | No | CKB JSON-RPC URL for on-chain payment verification and address derivation (e.g. `https://ckb.taiko.xyz`) |
 | `CRON_SECRET` | No | Secret for protecting `/api/cron/verify-payments` (Vercel Cron sends as `Authorization: Bearer <CRON_SECRET>`) |
 | `ATTENDANCE_ISSUER_PRIVATE_KEY` | No | PEM Ed25519 private key for signing proof-of-attendance JWTs; if unset, credential issuance is disabled |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | No | Google Maps API key for address autocomplete when creating events |
@@ -86,7 +84,7 @@ Create a `.env` or `.env.local` in the project root.
 
 2. **Set environment variables**
 
-   Copy the variables above into `.env.local` and fill in at least `DATABASE_URL` and `BETTER_AUTH_URL`.
+   Copy the variables above into `.env.local` and fill in at least `DATABASE_URL`.
 
 3. **Database**
 

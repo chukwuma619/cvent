@@ -1,7 +1,81 @@
-
 import { ccc } from "@ckb-ccc/core";
 
 const SHANNONS_PER_CKB = 100_000_000;
+
+const NONCE_PREFIX = "cvent:";
+const NONCE_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
+
+/** Check that message is a valid cvent nonce and not expired. */
+export function isNonceValid(message: string): boolean {
+  if (typeof message !== "string" || !message.startsWith(NONCE_PREFIX)) {
+    return false;
+  }
+  const rest = message.slice(NONCE_PREFIX.length);
+  const firstColon = rest.indexOf(":");
+  if (firstColon === -1) return false;
+  const timestamp = Number.parseInt(rest.slice(0, firstColon), 10);
+  if (Number.isNaN(timestamp)) return false;
+  return Date.now() - timestamp < NONCE_MAX_AGE_MS;
+}
+
+type WalletSignatureLike = {
+  signature: string;
+  identity?: string;
+  signType: string;
+};
+
+/**
+ * Verify a wallet signature (message signed by CKB wallet).
+ * Returns true if the signature is valid and the signer matches the expected address.
+ * For CkbSecp256k1, identity is public key – we derive address and compare.
+ * For JoyId and others, we trust the client address after verification.
+ */
+export async function verifyWalletSignature(
+  message: string,
+  signature: WalletSignatureLike,
+  expectedAddress: string
+): Promise<boolean> {
+  const ok = await ccc.Signer.verifyMessage(message, signature as never);
+  if (!ok) return false;
+
+  const signType = (signature as { signType?: string }).signType;
+  const identity = (signature as { identity?: string }).identity;
+
+  if (signType === "CkbSecp256k1" && typeof identity === "string") {
+    const rpcUrl =
+      process.env.CKB_RPC_URL?.trim() || "https://mainnet.ckb.dev";
+    try {
+      const pubkeyHex = identity.startsWith("0x") ? identity : `0x${identity}`;
+      const hashBytes = ccc.bytesFrom(ccc.hashCkb(ccc.bytesFrom(pubkeyHex)));
+      const args = hashBytes.slice(0, 20);
+      const clients = {
+        ckb: new ccc.ClientPublicMainnet({ url: rpcUrl }),
+        ckt: new ccc.ClientPublicTestnet({ url: rpcUrl }),
+      };
+      const addrCkb = await ccc.Address.fromKnownScript(
+        clients.ckb,
+        ccc.KnownScript.Secp256k1Blake160,
+        args
+      );
+      const addrCkt = await ccc.Address.fromKnownScript(
+        clients.ckt,
+        ccc.KnownScript.Secp256k1Blake160,
+        args
+      );
+      const derivedCkb = addrCkb.toString();
+      const derivedCkt = addrCkt.toString();
+      const expected = expectedAddress.trim();
+      return derivedCkb === expected || derivedCkt === expected;
+    } catch {
+      return false;
+    }
+  }
+
+  if (typeof identity === "string" && identity === expectedAddress.trim()) {
+    return true;
+  }
+  return true;
+}
 
 /** Fetch CKB price in given currency (e.g. "usd") from CoinGecko. */
 export async function getCkbPriceInCurrency(

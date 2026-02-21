@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Wallet, ExternalLink, Calendar } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getSessionFromHeaders } from "@/lib/auth";
 import { getOrdersForHost } from "@/lib/dashboard/queries";
 import {
   Card,
@@ -21,12 +21,12 @@ function formatCkb(shannons: number): string {
 }
 
 export default async function EarningsPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) {
+  const session = await getSessionFromHeaders(await headers());
+  if (!session?.walletAddress) {
     redirect("/login?callbackUrl=/dashboard/earnings");
   }
 
-  const { data: orders, error } = await getOrdersForHost(session.user.id);
+  const { data: orders, error } = await getOrdersForHost(session.walletAddress);
 
   if (error) {
     return (

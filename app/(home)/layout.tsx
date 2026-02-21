@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getSessionFromHeaders } from "@/lib/auth";
 export default async function HomeLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSessionFromHeaders(await headers());
 
   return (
 
@@ -26,7 +26,7 @@ export default async function HomeLayout({
           >
             Discover
           </Link>
-          {session ? (
+          {session?.walletAddress ? (
             <Link
               href="/dashboard"
               className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"

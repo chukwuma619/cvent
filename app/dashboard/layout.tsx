@@ -1,24 +1,27 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { getWalletByUserId } from "@/lib/account/actions";
+import { getSessionFromHeaders } from "@/lib/auth";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardAside } from "@/components/dashboard/dashboard-aside";
+
+function truncateAddress(addr: string): string {
+  if (addr.length <= 14) return addr;
+  return `${addr.slice(0, 7)}...${addr.slice(-4)}`;
+}
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) {
+  const session = await getSessionFromHeaders(await headers());
+  if (!session?.walletAddress) {
     redirect("/login?callbackUrl=/dashboard");
   }
 
-  const userName = session.user.name ?? session.user.email ?? null;
-  const wallet = await getWalletByUserId(session.user.id);
-  const walletAddress = wallet?.address ?? session.user.walletAddress ?? null;
+  const userName = truncateAddress(session.walletAddress);
+  const walletAddress = session.walletAddress;
 
   return (
     <div className="min-h-dvh bg-background">

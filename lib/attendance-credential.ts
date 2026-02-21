@@ -45,7 +45,7 @@ function getPrivateKey(): KeyObject | null {
 
 export function getIssuerId(): string | null {
   const url = (
-    process.env.BETTER_AUTH_URL
+    process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL
   )?.trim();
   if (!url) return null;
   return url.replace(/\/$/, "");

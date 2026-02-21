@@ -5,7 +5,7 @@ import { getEventForEdit } from "@/lib/dashboard/queries";
 import { CreateEventForm } from "@/components/dashboard/create-event-form";
 import { Button } from "@/components/ui/button";
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getSessionFromHeaders } from "@/lib/auth";
 
 export default async function EditEventPage({
   params,
@@ -14,17 +14,15 @@ export default async function EditEventPage({
 }) {
   const { eventId } = await params;
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  if (!session) {
+  const session = await getSessionFromHeaders(await headers());
+  if (!session?.walletAddress) {
     redirect("/login?callbackUrl=/dashboard/" + eventId + "/edit");
   }
 
   const [{ data: categories, error: categoriesError }, { data: eventData, error: eventError }] =
     await Promise.all([
       getCategories(),
-      getEventForEdit(eventId, session.user.id),
+      getEventForEdit(eventId, session.walletAddress),
     ]);
 
   if (categoriesError || !categories.length) {
