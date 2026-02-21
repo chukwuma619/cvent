@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAllPendingPaymentOrders } from "@/lib/discover/actions";
 
-
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : request.nextUrl.searchParams.get("secret");
+  const token =
+    authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7).trim()
+      : request.nextUrl.searchParams.get("secret")?.trim();
   const expected = process.env.CRON_SECRET?.trim();
 
-  if (!expected || token !== expected) {
+  if (!expected || !token || token !== expected) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
