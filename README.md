@@ -9,6 +9,7 @@ Event ticketing and proof of attendance on [CKB](https://nervos.org/) (Nervos). 
 - Discover events by category and location
 - Register for free or pay in CKB (Nervos) via wallet
 - Receive tickets with unique code and QR
+- View and print ticket receipts** (event details, ticket code, QR code)
 - Check in at the door (organizer scans QR or enters code)
 - Download a signed proof-of-attendance credential (JWT) for bounties, DAO roles, and reputation
 
@@ -34,21 +35,23 @@ Event ticketing and proof of attendance on [CKB](https://nervos.org/) (Nervos). 
 
 ```
 app/
-  (home)/              # Public: landing, discover, event detail
-  (auth)/              # login, signup
-  dashboard/           # Protected: events, tickets, account, earnings, create/edit event
-  api/                 # Auth, CKB price, upload, cron verify-payments, credentials, well-known
+  (home)/                    # Public: landing, discover, event detail
+  (auth)/                    # Login (wallet connect)
+  dashboard/                 # Protected: events, tickets, account, earnings, create/edit event
+    tickets/
+      receipt/[ticketId]/     # Ticket receipt (view/print)
+  api/                       # Auth, CKB price, upload, cron, credentials, well-known
 lib/
-  auth.ts              # Wallet-signed session (getSession, setSessionCookie)
-  auth-client.ts       # useSession hook
-  db/                  # Drizzle schema + Neon client
-  discover/actions.ts   # Event discovery, registration, CKB payment flow
-  dashboard/           # Dashboard queries and actions
-  account/             # Account actions
-  ckb.ts               # CKB price, RPC verification helpers
-  attendance-credential.ts  # Ed25519 JWT proof-of-attendance
-components/            # UI components (shadcn + app-specific)
-drizzle/               # Migrations (generated)
+  auth.ts                    # Wallet-signed session (getSession, setSessionCookie)
+  auth-client.ts             # useSession hook
+  db/                        # Drizzle schema + Neon client
+  discover/actions.ts        # Event discovery, registration, CKB payment flow
+  dashboard/                 # Dashboard queries and actions (tickets, receipt, check-in)
+  account/                   # Account actions
+  ckb.ts                     # CKB price, RPC verification helpers
+  attendance-credential.ts   # Ed25519 JWT proof-of-attendance
+components/                  # UI components (shadcn + app-specific, ticket QR, print receipt)
+drizzle/                     # Migrations (generated)
 ```
 
 ## Prerequisites
@@ -103,7 +106,7 @@ Create a `.env` or `.env.local` in the project root.
    pnpm dev
    ```
 
-   Open [http://localhost:3000](http://localhost:3000). Use **Discover** to browse events and **Sign up** / **Log in** to create events or get tickets.
+   Open [http://localhost:3000](http://localhost:3000). Use **Discover** to browse events and **Log in** (wallet) to create events or get tickets. Registered users can view and print ticket receipts from **Dashboard → My tickets → View receipt**.
 
 ## Scripts
 
@@ -122,7 +125,10 @@ Create a `.env` or `.env.local` in the project root.
 
 | Route | Method | Description |
 |-------|--------|-------------|
-| `/api/auth/[...all]` | All | Better Auth handlers (session, sign-in, sign-up, OAuth) |
+| `/api/auth/session` | GET | Current wallet session |
+| `/api/auth/nonce` | GET | Nonce for wallet sign-in |
+| `/api/auth/wallet` | POST | Wallet sign-in (message + signature) |
+| `/api/auth/signout` | POST | Sign out |
 | `/api/ckb-price` | GET | CKB price in a given currency (query: `currency`) |
 | `/api/upload` | POST | Upload event image (Vercel Blob) |
 | `/api/credentials/attendance` | GET | Signed proof-of-attendance JWT (query: `eventId`; requires session) |
@@ -167,6 +173,6 @@ For more on Next.js deployment, see [Deploying](https://nextjs.org/docs/app/buil
 ## Learn more
 
 - [Next.js Documentation](https://nextjs.org/docs)
-- [Better Auth](https://www.better-auth.com/)
 - [Drizzle ORM](https://orm.drizzle.team/)
 - [Nervos / CKB](https://docs.nervos.org/)
+- [CKB CCC (wallet connect)](https://github.com/ckb-js/ckb-ccc)
