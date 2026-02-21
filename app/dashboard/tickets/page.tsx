@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Calendar, MapPin, Clock, Ticket } from "lucide-react";
+import { Calendar, MapPin, Clock, Ticket, Receipt } from "lucide-react";
 import { getSessionFromHeaders } from "@/lib/auth";
 import { getTicketsByUserId } from "@/lib/dashboard/queries";
 import {
@@ -50,8 +50,8 @@ export default async function MyTicketsPage() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {tickets.map(({ event, ticketCode, checkedInAt }) => (
-            <Card key={event.id} className="overflow-hidden">
+          {tickets.map(({ ticketId, event, ticketCode, checkedInAt }) => (
+            <Card key={ticketId} className="overflow-hidden">
               <div className="relative aspect-5/3 w-full overflow-hidden bg-muted">
                 {event.imageUrl ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
@@ -107,9 +107,17 @@ export default async function MyTicketsPage() {
                     eventTitle={event.title}
                   />
                 )}
-                <Button variant="outline" size="sm" className="mt-2 w-full" asChild>
-                  <Link href={`/discover/${event.id}`}>View event</Link>
-                </Button>
+                <div className="mt-2 flex flex-col gap-2">
+                  <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Link href={`/dashboard/tickets/receipt/${ticketId}`}>
+                      <Receipt className="mr-2 size-3.5" />
+                      View receipt
+                    </Link>
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Link href={`/discover/${event.id}`}>View event</Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

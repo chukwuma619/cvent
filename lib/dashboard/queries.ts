@@ -357,6 +357,7 @@ export async function getAttendeesByEventId(
 }
 
 export type TicketWithEvent = {
+  ticketId: string;
   event: Event;
   ticketCode: string;
   orderStatus: string;
@@ -369,6 +370,7 @@ export async function getTicketsByUserId(
   try {
     const rows = await db
       .select({
+        ticketId: eventTicket.id,
         event: event,
         eventOrder: eventOrder,
         ticketCode: eventTicket.ticketCode,
@@ -379,10 +381,68 @@ export async function getTicketsByUserId(
       .innerJoin(event, eq(eventTicket.eventId, event.id))
         .innerJoin(eventOrder, eq(eventTicket.eventOrderId, eventOrder.id))
       .where(eq(eventTicket.walletAddress, walletAddress));
-    return { data: rows, error: null };
+    const data: TicketWithEvent[] = rows.map((r) => ({
+      ticketId: r.ticketId,
+      event: r.event,
+      ticketCode: r.ticketCode,
+      orderStatus: r.orderStatus,
+      checkedInAt: r.checkedInAt,
+    }));
+    return { data, error: null };
   } catch (err) {
     console.error("getTicketsByUserId error:", err);
     return { data: [], error: err instanceof Error ? err.message : "Failed to get tickets." };
+  }
+}
+
+export type TicketReceipt = {
+  ticketId: string;
+  ticketCode: string;
+  orderStatus: string;
+  amountCkbShannons: number;
+  event: Event;
+};
+
+export async function getTicketReceiptById(
+  ticketId: string,
+  walletAddress: string
+): Promise<{ data: TicketReceipt | null; error: string | null }> {
+  try {
+    const [row] = await db
+      .select({
+        ticketId: eventTicket.id,
+        ticketCode: eventTicket.ticketCode,
+        orderStatus: eventOrder.status,
+        amountCkbShannons: eventOrder.amountCkbShannons,
+        event: event,
+      })
+      .from(eventTicket)
+      .innerJoin(event, eq(eventTicket.eventId, event.id))
+      .innerJoin(eventOrder, eq(eventTicket.eventOrderId, eventOrder.id))
+      .where(
+        and(
+          eq(eventTicket.id, ticketId),
+          eq(eventTicket.walletAddress, walletAddress)
+        )
+      )
+      .limit(1);
+    if (!row) return { data: null, error: null };
+    return {
+      data: {
+        ticketId: row.ticketId,
+        ticketCode: row.ticketCode,
+        orderStatus: row.orderStatus,
+        amountCkbShannons: row.amountCkbShannons,
+        event: row.event,
+      },
+      error: null,
+    };
+  } catch (err) {
+    console.error("getTicketReceiptById error:", err);
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : "Failed to load receipt.",
+    };
   }
 }
 
