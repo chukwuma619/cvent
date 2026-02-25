@@ -140,7 +140,7 @@ export function CreateEventForm({
           categoryId: initialData.categoryId,
           city: initialData.city,
           continent: initialData.continent,
-          priceDollars: initialData.priceCents / 100,
+          priceDollars: (initialData.priceCents ?? 0) / 100,
           currency: initialData.currency,
         }
       : {

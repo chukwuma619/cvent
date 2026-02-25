@@ -33,6 +33,8 @@ export async function createEvent({
     if (!inserted) {
       return { data: null, error: "Failed to create event." };
     }
+    revalidatePath("/dashboard");
+    revalidatePath("/discover");
     return { data: inserted, error: null };
   } catch (error) {
     console.error("createEvent error:", error);
@@ -48,6 +50,11 @@ export async function updateEvent(eventId: string, data: Partial<CreateEventInpu
       .where(eq(event.id, eventId))
       .returning();
 
+    if (updated) {
+      revalidatePath("/dashboard");
+      revalidatePath("/discover");
+      revalidatePath(`/dashboard/${eventId}`);
+    }
     return { data: updated, error: null };
   } catch (err) {
     console.error("updateEvent error:", err);

@@ -37,6 +37,7 @@ export default async function EditEventPage({
     notFound();
   }
 
+  const currency = eventData.currency.toUpperCase() as "USD" | "EUR" | "GBP";
   const initialData = {
     id: eventData.id,
     title: eventData.title,
@@ -48,8 +49,8 @@ export default async function EditEventPage({
     categoryId: eventData.categoryId,
     city: eventData.city,
     continent: eventData.continent,
-    priceCents: eventData.priceCents,
-    currency: eventData.currency as "USD" | "EUR" | "GBP",
+    priceCents: Number(eventData.priceCents),
+    currency: ["USD", "EUR", "GBP"].includes(currency) ? currency : "USD",
   };
 
   return (
